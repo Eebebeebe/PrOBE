@@ -3,16 +3,11 @@ name: CI
 on:
   pull_request:
     branches:
-      - wormeyman-space-age-support
+      - main
   push:
     branches:
-      - wormeyman-space-age-support
+      - main
   workflow_dispatch:
-    inputs:
-      deploy:
-        description: Also deploy to Cloudflare after checks pass
-        type: boolean
-        default: false
 
 # Cancel superseded runs: a newer PR push drops the stale check run, and a newer
 # push to the deploy branch cancels an in-flight run (including its deploy job).
@@ -342,44 +337,3 @@ jobs:
             /tmp/localpreview.log
           retention-days: 7
 
-  deploy:
-    name: Deploy to Cloudflare
-    # Both gates, not just `checks`. The class of bug this adds cover for is the
-    # one that motivated the `e2e` job: a change that type-checks, lints and
-    # passes every unit test while breaking the editor in a browser - PR #222
-    # dropping `position-relative-to-grid` is the worked example, and `checks`
-    # was green on it. Without `e2e` here, exactly that could reach
-    # fbe.factorygamefan.com. The price is the deploy's critical path growing by
-    # the length of the suite's slowest shard - 213s, 225s and 250s over three
-    # runs, so a deploy that used to start after 46s of `checks` now waits three
-    # to four minutes. It was thirteen before the suite was sharded across four runners,
-    # which is most of why it was. If the wait ever stops being worth paying,
-    # this is the gate to reconsider rather than the job.
-    needs: [checks, e2e]
-    # Gate deploys on green checks. Runs on push to the deploy branch, or on a
-    # manual dispatch with the deploy input set; never on pull requests.
-    if: >-
-      github.event_name == 'push' ||
-      (github.event_name == 'workflow_dispatch' && inputs.deploy)
-    runs-on: ubuntu-latest
-    timeout-minutes: 15
-    steps:
-      - name: Checkout
-        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
-
-      - name: Set up Vite+
-        uses: ./.github/actions/setup-vp
-
-      - name: Install dependencies
-        run: vp install --frozen-lockfile
-
-      - name: Build website
-        run: npm run build:website
-
-      - name: Deploy worker to Cloudflare
-        uses: cloudflare/wrangler-action@ebbaa1584979971c8614a24965b4405ff95890e0 # v4
-        with:
-          apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
-          workingDirectory: packages/worker
-        env:
-          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}

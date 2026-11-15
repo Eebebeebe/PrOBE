@@ -14,7 +14,7 @@
 // to itself, which presents as the sprite server failing rather than as a port
 // clash. Here it is a named error before either server starts.
 import { spawn } from 'node:child_process'
-import { connect } from 'node:net'
+import { connect, createServer } from 'node:net'
 import { dirname, join } from 'node:path'
 import { fileURLToPath, pathToFileURL } from 'node:url'
 
@@ -50,9 +50,29 @@ function isHostFree(port, host) {
     })
 }
 
+// Whether this machine has an IPv6 loopback at all. Some do not: IPv6 can be
+// switched off on `lo` (sysctl disable_ipv6, some VPN and hardened setups), and
+// then binding ::1 fails with EADDRNOTAVAIL. Connecting to ::1 on such a machine
+// does not fail either - it hangs until the probe's timeout, which isPortFree
+// reads as "something is answering slowly", so every port looked taken and the
+// script refused to start. Nothing can be listening on an address that cannot
+// be bound, so there is nothing to probe. Asked by binding rather than by
+// connecting, and only once.
+let ipv6Loopback
+function hasIPv6Loopback() {
+    ipv6Loopback ??= new Promise(resolve => {
+        const server = createServer()
+        server.once('error', () => resolve(false))
+        server.listen(0, '::1', () => server.close(() => resolve(true)))
+    })
+    return ipv6Loopback
+}
+
 /** True when nothing is listening on the port, on either loopback family. */
 export async function isPortFree(port) {
-    const results = await Promise.all(['127.0.0.1', '::1'].map(host => isHostFree(port, host)))
+    const hosts = ['127.0.0.1']
+    if (await hasIPv6Loopback()) hosts.push('::1')
+    const results = await Promise.all(hosts.map(host => isHostFree(port, host)))
     return results.every(Boolean)
 }
 

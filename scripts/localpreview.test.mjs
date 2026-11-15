@@ -47,7 +47,7 @@ test('isPortFree is false for an IPv4 listener', async () => {
     }
 })
 
-test('isPortFree is false for an IPv6-only listener', async () => {
+test('isPortFree is false for an IPv6-only listener', async ({ skip }) => {
     /*
         The case that motivated probing both families. Vite binds localhost,
         which on macOS resolves to ::1 alone, so a check that only looked at
@@ -55,7 +55,18 @@ test('isPortFree is false for an IPv6-only listener', async () => {
         script would then launch a second Vite that loses the bind, or worse
         fall through to the silent-fallback behaviour the check exists to stop.
     */
-    const { server, port } = await listenOn('::1')
+    // A machine with no ::1 cannot hold an IPv6-only listener, so there is
+    // nothing to observe. Skip rather than fail: the failure would be about the
+    // machine, not the code.
+    const listener = await listenOn('::1').catch(e => {
+        if (e.code === 'EADDRNOTAVAIL' || e.code === 'EAFNOSUPPORT') return undefined
+        throw e
+    })
+    if (listener === undefined) {
+        skip('this machine has no usable IPv6 loopback (::1)')
+        return
+    }
+    const { server, port } = listener
     try {
         assert.equal(await isPortFree(port), false)
     } finally {
