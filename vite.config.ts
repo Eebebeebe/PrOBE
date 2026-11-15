@@ -13,11 +13,6 @@ export default defineConfig({
             'packages/website/dist',
             'packages/editor/src/basis',
             'packages/exporter',
-            // Out of migration scope; its tsconfig references a gitignored,
-            // wrangler-generated worker-configuration.d.ts that is absent on a
-            // fresh checkout (e.g. CI), which oxlint reports as an invalid tsconfig.
-            'packages/worker',
-            'functions/corsproxy.js',
         ],
         rules: {
             'constructor-super': 'error',
@@ -202,7 +197,6 @@ export default defineConfig({
             'packages/editor/src/basis',
             'packages/exporter',
             '**/package-lock.json',
-            'packages/worker/worker-configuration.d.ts',
             '.claude',
             '.superpowers',
             '**/*.yml',

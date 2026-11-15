@@ -3,8 +3,7 @@
     "private": true,
     "workspaces": [
         "packages/editor",
-        "packages/website",
-        "packages/worker"
+        "packages/website"
     ],
     "scripts": {
         "localpreview": "node scripts/localpreview.mjs",
