@@ -431,3 +431,54 @@ independent re-run confirmed every boundary.
   explained instead of looking like "no code".
 - **In-game editing:** that is only possible for code under 500 bytes, or by splitting it across several
   combinator comments, which is fragile. The primary editor is the browser.
+
+---
+
+## 11. `#code` storage: editable in the browser _and_ in the game (supersedes D6 and the 3c.6 format)
+
+Measured with `tools/oracle/probe-code-in-combinators.mjs` (Factorio 2.1.25, independently re-run):
+
+- Constant-combinator `player_description` survives every path tested: import/export, ghosts, building, revive,
+  recapture, clone, copy-settings, rotation and flips.
+- Entity `tags` survive only while the blueprint has never been built. Reviving the ghosts drops them.
+- `entity_number` carries no order. Import renumbers 1..N in array order; a recapture numbers by world position
+  (x, then y).
+- Geometry cannot recover chunk order either. A horizontal flip reverses a row and leaves no marker, and a vertical
+  flip looks exactly like a 180° rotation.
+- Editing one comment in the world changes only that chunk.
+- An over-long edit is cut at 500 **bytes**, by raw byte. It can leave invalid UTF-8 and still re-imports with no
+  error.
+- Recapturing into an existing stack keeps its label but clears its description.
+
+**Format.**
+
+- **Location:** the user's book holds a nested book labelled `#code`. Each program is one blueprint in it, labelled
+  with the program name (≤ 200 bytes). That blueprint is a row of constant combinators.
+- **Chunk content:** each combinator's `player_description` is one chunk, starting with a header line
+  `//#probe <i>/<n>` followed by a newline and then the chunk body. The program is the bodies concatenated in
+  header order.
+- **How the writer splits the code:**
+    - It splits at line ends where possible, and otherwise at UTF-8 code-point boundaries.
+    - Each chunk stays at **≤ 400 bytes including the header**, so an in-game edit has about 100 bytes of headroom
+      before the game's silent cut at 500.
+    - It always writes non-empty chunks.
+- **Backup:** the first combinator's `tags` hold `{probe_v: 1, code, sha256}` as a full backup. Tags do not survive
+  building, so the comments are the primary store.
+
+**Reading, and what PrOBE tells the user:**
+
+| Situation                   | Detected by                                                          | PrOBE does                                                                 |
+| --------------------------- | -------------------------------------------------------------------- | -------------------------------------------------------------------------- |
+| In sync                     | tags present, sha256(program) = tags.sha256                          | load silently                                                              |
+| Edited in game              | tags present, hash differs                                           | load the comments (the newer text), say so, offer the tags version         |
+| Came back from the world    | no tags                                                              | load the comments                                                          |
+| Cut off in game             | a chunk is exactly 500 bytes or ends in an incomplete UTF-8 sequence | warn and name the chunk; offer the tags version if any                     |
+| Chunk missing or duplicated | header indices                                                       | error naming the missing or duplicate `i/n`                                |
+| Header line deleted in game | no `//#probe` header                                                 | fall back to position order (y, then x) and warn that the order is a guess |
+
+**Editing.** The browser editor always edits the whole program as one text. Saving re-chunks it and rewrites the
+tags, so a chunk that grew in the game is redistributed. In the game, the player edits a comment and keeps its first
+line.
+
+**Open, needs the user:** whether the in-game comment text box itself stops typing at 500 characters or bytes. That
+can only be checked in the game's GUI, not headless.
