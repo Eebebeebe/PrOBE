@@ -2,7 +2,7 @@
 
 Third-party Factorio blueprints, included here as **test fixtures**. Nine
 Playwright specs load every file in this directory and pin what the editor makes
-of it - see the Playwright section of `../CLAUDE.md`.
+of it - see the Playwright section of `../docs/legacy/CLAUDE-legacy.md`.
 
 These are other people's designs. They are redistributed unmodified, with
 attribution, so that the test suite works on a fresh clone; nothing here is

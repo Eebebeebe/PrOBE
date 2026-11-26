@@ -53,10 +53,10 @@ Run Playwright from the repo root and never with sudo.
 
 - Rails do not behave correctly yet.
 - Quality exists only on filters; entities and modules do not model it.
-- TODO: `/corsproxy` (used by `?source=` imports, `bpString.ts`) is only served in dev,
-  where `packages/website/vite.config.js` proxies it to the previous project's production
-  site; the production handler (`functions/corsproxy.js`, Cloudflare) was removed. Replace
-  it with a local implementation.
+- TODO: `/corsproxy` (used by `?source=` imports, `bpString.ts`) is only served by the
+  Vite dev and preview servers, which proxy it (`packages/website/vite.config.js`) to the
+  previous project's production site. A static deployment of `dist/` has no handler, since
+  `functions/corsproxy.js` (Cloudflare) was removed. Replace it with a local implementation.
 - `Blueprint.ts`, `Entity.ts` and `bpString.ts` still reach into Pixi and the `G` globals
   in a few places; the core must become headless so the scripting engine can run in Node.
 
