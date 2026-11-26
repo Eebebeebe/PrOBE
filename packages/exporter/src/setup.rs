@@ -301,8 +301,7 @@ pub async fn extract(output_dir: &Path, base_factorio_dir: &Path) -> Result<(), 
     let tmp_dir = std::env::temp_dir().join("__FBE__");
     tokio::fs::create_dir_all(&tmp_dir).await?;
 
-    let available_parallelism =
-        std::thread::available_parallelism().map_or(1, std::num::NonZeroUsize::get);
+    let available_parallelism = sprite_jobs();
 
     futures::future::try_join_all((0..available_parallelism).map(|_| {
         compress_next_img(
@@ -455,8 +454,7 @@ pub async fn extract_local(output_dir: &Path, factorio_dir: &Path) -> Result<(),
     let tmp_dir = std::env::temp_dir().join("__FBE__");
     tokio::fs::create_dir_all(&tmp_dir).await?;
 
-    let available_parallelism =
-        std::thread::available_parallelism().map_or(1, std::num::NonZeroUsize::get);
+    let available_parallelism = sprite_jobs();
 
     futures::future::try_join_all((0..available_parallelism).map(|_| {
         compress_next_img(
@@ -501,6 +499,19 @@ async fn get_len_and_mtime(path: &Path) -> Result<(u64, u64), Box<dyn Error>> {
         .map(|dur| dur.as_secs())
         .unwrap_or(0);
     Ok((metadata.len(), mtime))
+}
+
+/// How many sprites are encoded at once: EXPORT_JOBS if set to a positive
+/// number, else one per CPU thread. Each job runs its own basisu with a whole
+/// decoded image in memory, so a lower number trades time for memory.
+fn sprite_jobs() -> usize {
+    parse_jobs(env::var("EXPORT_JOBS").ok().as_deref()).unwrap_or_else(|| {
+        std::thread::available_parallelism().map_or(1, std::num::NonZeroUsize::get)
+    })
+}
+
+fn parse_jobs(value: Option<&str>) -> Option<usize> {
+    value?.trim().parse::<usize>().ok().filter(|&n| n > 0)
 }
 
 /// The basisu binary for this OS: the bundled ./basisu (macOS) or
@@ -703,6 +714,15 @@ mod tests {
         let tmp = Path::new("/tmp/__FBE__");
         let src = Path::new("data/factorio/data/base/graphics/icons/pipe.png");
         assert_eq!(tmp_copy_path(tmp, src).unwrap(), tmp.join(src));
+    }
+
+    #[test]
+    fn export_jobs_takes_a_positive_number_only() {
+        assert_eq!(parse_jobs(Some("2")), Some(2));
+        assert_eq!(parse_jobs(Some(" 3 ")), Some(3));
+        assert_eq!(parse_jobs(Some("0")), None);
+        assert_eq!(parse_jobs(Some("many")), None);
+        assert_eq!(parse_jobs(None), None);
     }
 
     #[test]
