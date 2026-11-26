@@ -20,6 +20,10 @@ export default defineConfig(async ({ command, mode }) => {
           })
         : null
     const proxy = {
+        // TODO: replace with a local implementation. This forwards `?source=`
+        // fetches (bpString.ts) to the previous project's production site, and
+        // nothing serves /corsproxy in a production build since its Cloudflare
+        // function was removed.
         '/corsproxy': {
             target: 'https://fbe.factorygamefan.com',
             changeOrigin: true,
