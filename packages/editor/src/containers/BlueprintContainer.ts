@@ -29,6 +29,7 @@ import { TileContainer } from './TileContainer'
 import { PaintTileContainer } from './PaintTileContainer'
 import { PaintWireContainer } from './PaintWireContainer'
 import { IllegalFlipError } from '../core/errors'
+import { coreSettings } from '../core/config'
 import { Axis, PaintContainer } from './PaintContainer'
 import { PaintBlueprintContainer } from './PaintBlueprintContainer'
 import { GridData } from './GridData'
@@ -65,7 +66,6 @@ export class BlueprintContainer extends Container {
     private static _moveSpeed = 10
     private static _gridColor = 0x303030
     private static _gridPattern = GridPattern.GRID
-    private static _limitWireReach = true
 
     /** Nr of cunks */
     private readonly chunks = 32
@@ -908,11 +908,11 @@ export class BlueprintContainer extends Container {
     }
 
     public get limitWireReach(): boolean {
-        return BlueprintContainer._limitWireReach
+        return coreSettings.limitWireReach
     }
 
     public set limitWireReach(limit: boolean) {
-        BlueprintContainer._limitWireReach = limit
+        coreSettings.limitWireReach = limit
     }
 
     private generateGrid(pattern = this.gridPattern): TilingSprite {

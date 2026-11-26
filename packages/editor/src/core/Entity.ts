@@ -16,7 +16,7 @@ import {
 } from '../types'
 import util from '../common/util'
 import { IllegalFlipError } from './errors'
-import G from '../common/globals'
+import { coreSettings } from './config'
 import FD, {
     ColorWithAlpha,
     getCircuitConnector,
@@ -278,7 +278,7 @@ export class Entity extends EventEmitter<EntityEvents> {
                         Math.min(e.maxWireDistance, this.maxWireDistance)
                     )
             )
-        if (G.BPC.limitWireReach && connectionsBreak) return
+        if (coreSettings.limitWireReach && connectionsBreak) return
 
         this.m_BP.history
             .updateValue(this.m_rawEntity, 'position', position, 'Change position')
