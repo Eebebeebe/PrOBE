@@ -1,5 +1,13 @@
 import { test, expect } from '@playwright/test'
 import { discoverBlueprintFiles, readBlueprintString } from './helpers/blueprint-files'
+import {
+    TALLIED_SHAPE,
+    TALLIED_VALUES,
+    type Histogram,
+    type Tally,
+} from './helpers/entity-accessor-keys'
+// The fixed point, shared with the Node twin tests/headless/entity-accessors.test.ts. See below.
+import EXPECTED from './__fixtures__/entity-accessors.json'
 
 /*
     Characterization test for Entity's accessor surface.
@@ -37,65 +45,6 @@ import { discoverBlueprintFiles, readBlueprintString } from './helpers/blueprint
     Entity needs FD loaded from data.json, so this is Playwright rather than
     vitest - see CLAUDE.md for the two servers that have to be up.
 */
-
-/*
-    Eleven accessors whose value set is open, so only the shape of what they
-    answer can be pinned. Measured 2026-08-10 across the corpus: `filters` takes
-    1018 distinct values, `recipe` 264, `combinatorConditions` 228. The three
-    `accepted*` lists have few distinct values but enormous keys - one
-    `acceptedFilters` value serializes to roughly 54,000 characters - and the
-    only compact key for those is a hash, which names nothing when it moves.
-*/
-const TALLIED_SHAPE = [
-    'recipe',
-    'filters',
-    'trainStopColor',
-    'station',
-    'constantCombinatorFilters',
-    'displayPanelIcon',
-    'modules',
-    'combinatorConditions',
-    'acceptedRecipes',
-    'acceptedModules',
-    'acceptedFilters',
-] as const
-
-/*
-    Fourteen accessors whose value set is small and closed, recorded exactly.
-
-    This is issue #189. The four-bucket tally cannot see a value, so 0 and 9 both
-    read as `value` - which is the structural reason #186's splitter bug survived
-    a 578-blueprint corpus. Worse, eight of these are total functions (never
-    undefined, never throwing, never an array), so their old tally was pinned at
-    exactly entityCount and could not move at all.
-
-    Measured maximum is 10 distinct values (`inserterStackSize`); the whole group
-    is 52 fixture entries, replacing the 56 bucket numbers it used to occupy.
-
-    `possibleRotations` is here despite being an array because its keys are short
-    and readable, unlike the `accepted*` lists above. The line between the two
-    lists is "small closed value set", which only measurement establishes - note
-    `recipe` is a scalar and belongs in the other list.
-*/
-const TALLIED_VALUES = [
-    'directionType',
-    'railLayer',
-    'filterSlots',
-    'splitterInputPriority',
-    'splitterOutputPriority',
-    'filterMode',
-    'moduleSlots',
-    'inserterStackSize',
-    'possibleRotations',
-    'canBeRotated',
-    'maxWireDistance',
-    'generateConnector',
-    'assemblerHasFluidInputs',
-    'mayCraftWithFluid',
-] as const
-
-type Tally = { value: number; empty: number; nothing: number; threw: number }
-type Histogram = Record<string, number>
 
 test('Entity accessors report the same shape across every test blueprint', async ({ page }) => {
     const files = discoverBlueprintFiles()
@@ -256,6 +205,8 @@ test('Entity accessors report the same shape across every test blueprint', async
 })
 
 /*
+    About EXPECTED (tests/__fixtures__/entity-accessors.json).
+
     The original fixed point here was captured from the accessors as they
     behaved before the strictNullChecks cleanup (issue #22), against the
     578-blueprint wormeyman-tests/ corpus. That corpus is gone: it was
@@ -282,65 +233,7 @@ test('Entity accessors report the same shape across every test blueprint', async
     nothing 302999 against a committed 302999. So these are the same fixed point
     at higher resolution, not a new snapshot.
 */
-const EXPECTED: {
-    entityCount: number
-    blueprintCount: number
-    shape: Record<string, Tally>
-    values: Record<string, Histogram>
-} = {
-    entityCount: 347725,
-    blueprintCount: 367,
-    shape: {
-        acceptedFilters: { value: 54004, empty: 293721, nothing: 0, threw: 0 },
-        acceptedModules: { value: 18771, empty: 328954, nothing: 0, threw: 0 },
-        acceptedRecipes: { value: 14366, empty: 333359, nothing: 0, threw: 0 },
-        combinatorConditions: { value: 2656, empty: 0, nothing: 345069, threw: 0 },
-        constantCombinatorFilters: { value: 988, empty: 346737, nothing: 0, threw: 0 },
-        displayPanelIcon: { value: 523, empty: 0, nothing: 347202, threw: 0 },
-        filters: { value: 16605, empty: 4258, nothing: 326862, threw: 0 },
-        modules: { value: 17476, empty: 330249, nothing: 0, threw: 0 },
-        recipe: { value: 9345, empty: 0, nothing: 338380, threw: 0 },
-        station: { value: 195, empty: 0, nothing: 347530, threw: 0 },
-        trainStopColor: { value: 2717, empty: 0, nothing: 345008, threw: 0 },
-    },
-    values: {
-        assemblerHasFluidInputs: { false: 344517, true: 3208 },
-        canBeRotated: { false: 103215, true: 244510 },
-        directionType: { input: 14246, output: 14265, undefined: 319214 },
-        filterMode: { blacklist: 139, whitelist: 347586 },
-        filterSlots: { '0': 293721, '1': 5910, '5': 44861, '30': 3233 },
-        generateConnector: { false: 314925, true: 32800 },
-        inserterStackSize: {
-            '1': 408,
-            '2': 28,
-            '3': 30441,
-            '4': 8,
-            '5': 1,
-            '7': 444,
-            '8': 113,
-            '10': 4,
-            '12': 13279,
-            null: 302999,
-        },
-        mayCraftWithFluid: { false: 342259, true: 5466 },
-        maxWireDistance: {
-            '0': 118354,
-            '7.5': 1178,
-            '9': 225198,
-            '10': 8,
-            '18': 1513,
-            '32': 1474,
-        },
-        moduleSlots: { '0': 330249, '2': 10337, '3': 1718, '4': 5167, '5': 221, '8': 33 },
-        possibleRotations: {
-            '[]': 90879,
-            '[0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15]': 4621,
-            '[0,2,4,6,8,10,12,14]': 39730,
-            '[0,4]': 517,
-            '[0,4,8,12]': 211978,
-        },
-        railLayer: { elevated: 749, undefined: 346976 },
-        splitterInputPriority: { left: 164, right: 129, undefined: 347432 },
-        splitterOutputPriority: { left: 726, right: 874, undefined: 346125 },
-    },
-}
+//
+// The values now live in tests/__fixtures__/entity-accessors.json (moved verbatim,
+// unchanged), and the two accessor lists in tests/helpers/entity-accessor-keys.ts,
+// so this spec and its Node twin share one copy of each.
