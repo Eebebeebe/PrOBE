@@ -66,7 +66,11 @@ class Book {
         const activeIndex = this.saveActiveBlueprint()
 
         return {
-            blueprints: this.blueprints.map((v, index) => ({ ...v, index })),
+            // Keep each entry's slot: slots can have gaps, and active_index names a slot.
+            blueprints: this.blueprints.map((v, position) => ({
+                ...v,
+                index: slotOf(v, position),
+            })),
             item: 'blueprint-book',
             active_index: activeIndex,
             version: getFactorioVersion(),
@@ -75,6 +79,21 @@ class Book {
             icons: this.icons,
         }
     }
+}
+
+/*
+    A book entry's `index` is the slot it occupies in the game's book GUI, not
+    its position in the array: slots can have gaps (0, 3, 7), and the book's
+    `active_index` names a slot. An entry without an index - hand-built JSON -
+    falls back to its array position.
+*/
+function slotOf(entry: IBlueprintBookEntry, position: number): number {
+    return typeof entry.index === 'number' ? entry.index : position
+}
+
+/** The array position of the entry in slot `slot`, or -1 if no entry occupies it. */
+function positionOfSlot(bps: IBlueprintBookEntry[], slot: number): number {
+    return bps.findIndex((entry, position) => slotOf(entry, position) === slot)
 }
 
 function countNestedBlueprints(bps: IBlueprintBookEntry[] = [], includePlanners = false): number {
@@ -90,8 +109,12 @@ function countNestedBlueprints(bps: IBlueprintBookEntry[] = [], includePlanners 
 }
 
 function getFlattenedActiveIndex(bps: IBlueprintBookEntry[] = [], active_index: number): number {
+    const active = positionOfSlot(bps, active_index)
+    // An empty book, or an active slot with nothing in it, opens the first blueprint.
+    if (active === -1) return 0
+
     {
-        const { upgrade_planner, deconstruction_planner, blueprint_book } = bps[active_index]
+        const { upgrade_planner, deconstruction_planner, blueprint_book } = bps[active]
 
         if (
             upgrade_planner ||
@@ -102,9 +125,9 @@ function getFlattenedActiveIndex(bps: IBlueprintBookEntry[] = [], active_index: 
         }
     }
 
-    let res = active_index
+    let res = active
 
-    for (let i = 0; i < active_index; i++) {
+    for (let i = 0; i < active; i++) {
         const { upgrade_planner, deconstruction_planner, blueprint_book } = bps[i]
 
         if (blueprint_book) {
@@ -114,7 +137,7 @@ function getFlattenedActiveIndex(bps: IBlueprintBookEntry[] = [], active_index: 
         }
     }
 
-    const { blueprint_book } = bps[active_index]
+    const { blueprint_book } = bps[active]
 
     if (blueprint_book) {
         res += getFlattenedActiveIndex(blueprint_book.blueprints, blueprint_book.active_index)
@@ -163,7 +186,7 @@ function getBlueprintAtFlattenedActiveIndex(
  * in the type mentioned.
  */
 type SaveResult =
-    /** Written into the entry at top-level index `index`. */
+    /** Written into the entry occupying slot `index` of these entries. */
     | { saved: true; index: number }
     /** Not in these entries; `remaining` blueprints of the search index are left to skip. */
     | { saved: false; remaining: number }
@@ -175,14 +198,14 @@ function saveBlueprint(bps: IBlueprintBookEntry[] = [], index: number, bp: IBlue
         if (blueprint) {
             if (i === 0) {
                 bps[j].blueprint = bp
-                return { saved: true, index: j }
+                return { saved: true, index: slotOf(bps[j], j) }
             }
             i -= 1
         } else if (blueprint_book) {
             const res = saveBlueprint(blueprint_book.blueprints, i, bp)
             if (res.saved) {
                 blueprint_book.active_index = res.index
-                return { saved: true, index: j }
+                return { saved: true, index: slotOf(bps[j], j) }
             }
             i = res.remaining
         }
