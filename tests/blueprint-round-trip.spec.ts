@@ -1,5 +1,7 @@
 import { test, expect } from '@playwright/test'
 import { discoverBlueprintFiles, readBlueprintString } from './helpers/blueprint-files'
+// The fixed point, shared with the Node twin tests/headless/round-trip.test.ts. See below.
+import EXPECTED from './__fixtures__/round-trip.json'
 
 /*
     Characterization test for Blueprint's decode -> model -> serialize path,
@@ -161,6 +163,8 @@ test('every test blueprint survives the decode/serialize round trip unchanged', 
 })
 
 /**
+ * About EXPECTED (tests/__fixtures__/round-trip.json).
+ *
  * The original fixed point here was captured before the Blueprint/History
  * strictNullChecks cleanup (issue #22), against the 578-blueprint
  * wormeyman-tests/ corpus. It is not what is below any more - the corpus was
@@ -189,14 +193,6 @@ test('every test blueprint survives the decode/serialize round trip unchanged', 
  * blueprints. The hash changing is exactly what serializing different JSON
  * should do.
  */
-const EXPECTED = {
-    blueprints: 367,
-    entities: 347725,
-    tiles: 232815,
-    wires: 48869,
-    icons: 956,
-    threw: 0,
-    positionChecksum: -44031602,
-    modelPositionChecksum: -63968586,
-    serializedHash: 825830683,
-}
+//
+// The values now live in tests/__fixtures__/round-trip.json (moved verbatim,
+// unchanged), so this spec and its Node twin read one copy of them.
