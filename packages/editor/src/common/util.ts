@@ -164,8 +164,10 @@ const areArraysEquivalent = <T extends object>(a: T[] | undefined, b: T[] | unde
     a.length === b.length &&
     a.every((v, i) => areObjectsEquivalent(v, b[i]))
 
+/** Logs how long the span from creation to `stop()` took, through `log` (console.log by default). */
 const timer = (
-    name: string
+    name: string,
+    log: (...data: unknown[]) => void = console.log
 ): {
     stop: () => void
 } => {
@@ -174,7 +176,7 @@ const timer = (
         stop: () => {
             const end = new Date()
             const time = end.getTime() - start.getTime()
-            console.log('Timer:', name, 'finished in', time, 'ms')
+            log('Timer:', name, 'finished in', time, 'ms')
         },
     }
 }

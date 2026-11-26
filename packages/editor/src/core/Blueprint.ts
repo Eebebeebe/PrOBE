@@ -590,10 +590,12 @@ class Blueprint extends EventEmitter<BlueprintEvents> {
 
         coreSettings.logger.log('Generating pipes...')
 
-        const T = util.timer('Total generation')
+        // The generator timers report through the core logger too.
+        const logTimer = (...data: unknown[]): void => coreSettings.logger.log(...data)
+        const T = util.timer('Total generation', logTimer)
 
         // Generate pipes
-        const GPT = util.timer('Pipe generation')
+        const GPT = util.timer('Pipe generation', logTimer)
 
         // I wrapped generatePipes into a Web Worker but for some reason it sometimes takes x2 time to run the function
         // Usualy when there are more than 100 pumpjacks the function will block the main thread
@@ -619,7 +621,7 @@ class Blueprint extends EventEmitter<BlueprintEvents> {
             position: IPoint
         }[] = []
         if (BEACONS) {
-            const GBT = util.timer('Beacon generation')
+            const GBT = util.timer('Beacon generation', logTimer)
 
             const entitiesForBeaconGen = [
                 ...pumpjacks.map(p => ({ ...p, size: 3, effect: true })),
@@ -639,7 +641,7 @@ class Blueprint extends EventEmitter<BlueprintEvents> {
         }
 
         // Generate poles
-        const GPOT = util.timer('Pole generation')
+        const GPOT = util.timer('Pole generation', logTimer)
 
         const entitiesForPoleGen = [
             ...pumpjacks.map(p => ({ ...p, size: 3, power: true })),
