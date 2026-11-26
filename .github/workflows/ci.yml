@@ -131,6 +131,10 @@ jobs:
         if: ${{ !cancelled() }}
         run: cargo clippy --locked --manifest-path packages/exporter/Cargo.toml -- -D warnings
 
+      - name: Unit tests
+        if: ${{ !cancelled() }}
+        run: cargo test --locked --manifest-path packages/exporter/Cargo.toml
+
   # The Linux job above compiles the linux cfg block of src/setup.rs and SKIPS the
   # Windows one, so a chunk of that file was never checked by anything. Not
   # theoretical: `zip` has exactly one call site in the whole crate, setup.rs:623,

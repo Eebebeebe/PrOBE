@@ -101,6 +101,30 @@ async fn get_info(path: &Path) -> Result<Info, Box<dyn Error>> {
     Ok(p)
 }
 
+/// Where the padded copy of `source` goes inside `tmp_dir`.
+///
+/// `tmp_dir.join(source)` is wrong for an absolute `source` - which is what
+/// local mode (FACTORIO_DIR) produces: `Path::join` with an absolute path
+/// discards `tmp_dir` and returns `source` itself, so the padded image would
+/// overwrite the game's own PNG. Only the normal components are kept, and the
+/// result is checked to lie inside `tmp_dir`.
+fn tmp_copy_path(tmp_dir: &Path, source: &Path) -> Result<PathBuf, Box<dyn Error>> {
+    let mut out = tmp_dir.to_path_buf();
+    for component in source.components() {
+        if let std::path::Component::Normal(part) = component {
+            out.push(part);
+        }
+    }
+    if out == tmp_dir || !out.starts_with(tmp_dir) {
+        return Err(format!(
+            "refusing to write a temp copy of {:?} outside {:?}",
+            source, tmp_dir
+        )
+        .into());
+    }
+    Ok(out)
+}
+
 #[allow(clippy::needless_lifetimes)]
 async fn make_img_pow2<'a>(
     path: &'a Path,
@@ -127,7 +151,7 @@ async fn make_img_pow2<'a>(
         let mut buffer = std::io::Cursor::new(buffer);
         out.write_to(&mut buffer, format)?;
 
-        let tmp_path = tmp_dir.join(path);
+        let tmp_path = tmp_copy_path(tmp_dir, path)?;
         tokio::fs::create_dir_all(tmp_path.parent().unwrap()).await?;
         tokio::fs::write(&tmp_path, &buffer.into_inner()).await?;
         Ok(Cow::Owned(tmp_path))
@@ -656,4 +680,37 @@ async fn download(
     pb.finish();
 
     Ok(())
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn tmp_copy_of_an_absolute_path_stays_in_tmp_dir() {
+        let tmp = Path::new("/tmp/__FBE__");
+        let src = Path::new("/home/player/Factorio/data/base/graphics/entity/pipe/pipe.png");
+        let out = tmp_copy_path(tmp, src).unwrap();
+        assert_eq!(
+            out,
+            Path::new("/tmp/__FBE__/home/player/Factorio/data/base/graphics/entity/pipe/pipe.png")
+        );
+        assert_ne!(out, src);
+    }
+
+    #[test]
+    fn tmp_copy_of_a_relative_path_is_unchanged_from_join() {
+        let tmp = Path::new("/tmp/__FBE__");
+        let src = Path::new("data/factorio/data/base/graphics/icons/pipe.png");
+        assert_eq!(tmp_copy_path(tmp, src).unwrap(), tmp.join(src));
+    }
+
+    #[test]
+    fn tmp_copy_refuses_parent_traversal_out_of_tmp_dir() {
+        let tmp = Path::new("/tmp/__FBE__");
+        // `..` components are dropped, so this still lands inside tmp_dir.
+        let out = tmp_copy_path(tmp, Path::new("../../etc/passwd")).unwrap();
+        assert!(out.starts_with(tmp));
+        assert!(tmp_copy_path(tmp, Path::new("/")).is_err());
+    }
 }
