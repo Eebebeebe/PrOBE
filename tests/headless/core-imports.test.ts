@@ -30,7 +30,6 @@ const FORBIDDEN_PACKAGES = [/^pixi\.js(\/|$)/, /^@pixi\//]
 const KNOWN_VIOLATIONS = new Set([
     'Blueprint.ts -> pixi.js',
     'Blueprint.ts -> ../common/globals',
-    'Entity.ts -> ../containers/PaintContainer',
     'Entity.ts -> ../common/globals',
     'bpString.ts -> ../common/globals',
 ])

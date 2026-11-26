@@ -6,13 +6,6 @@ import F from '../UI/controls/functions'
 import { BlueprintContainer } from './BlueprintContainer'
 import { EntitySprite } from './EntitySprite'
 
-export class IllegalFlipError {
-    public message: string
-    public constructor(message: string) {
-        this.message = message
-    }
-}
-
 export enum Axis {
     X,
     Y,

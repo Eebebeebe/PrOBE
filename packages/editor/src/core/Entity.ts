@@ -15,7 +15,7 @@ import {
     ScheduleData,
 } from '../types'
 import util from '../common/util'
-import { IllegalFlipError } from '../containers/PaintContainer'
+import { IllegalFlipError } from './errors'
 import G from '../common/globals'
 import FD, {
     ColorWithAlpha,
