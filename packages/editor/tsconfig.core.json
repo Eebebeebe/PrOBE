@@ -1,0 +1,13 @@
+{
+    // The headless core, checked without the DOM library: code here must run in
+    // Node, a Web Worker and Docker, so `window`, `document`, `HTMLElement` and
+    // the like must not type-check. See tests/headless/core-imports.test.ts for
+    // the matching import rule.
+    "extends": "../../tsconfig.json",
+    "compilerOptions": {
+        "lib": ["ESNext"],
+        "types": ["typed-factorio/prototype"]
+    },
+    "include": ["src/core/**/*.ts", "src/core/**/*.json", "src/global.d.ts", "core-runtime.d.ts"],
+    "exclude": ["src/core/**/*.test.ts"]
+}
