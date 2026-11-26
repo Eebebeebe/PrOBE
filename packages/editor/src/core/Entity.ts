@@ -42,7 +42,7 @@ import FD, {
     recipeResults,
 } from './factorioData'
 import { Blueprint } from './Blueprint'
-import { getBeltWireConnectionIndex } from './spriteDataBuilder'
+import { getBeltWireConnectionIndex, getPipeWireConnectionIndex } from './spriteDataBuilder'
 import U from './generators/util'
 import { EntityWithOwnerPrototype, CombinatorPrototype, WirePosition } from 'factorio:prototype'
 
@@ -1774,7 +1774,15 @@ export class Entity extends EventEmitter<EntityEvents> {
         const isLoaderInputting = () => this.directionType === 'input'
         const getBeltConnectionIndex = () =>
             getBeltWireConnectionIndex(this.m_BP.entityPositionGrid, this.position, direction)
-        const cc = getCircuitConnector(e, direction, isLoaderInputting, getBeltConnectionIndex)
+        const getConnectionMask = () =>
+            getPipeWireConnectionIndex(this.m_BP.entityPositionGrid, this.position, this.type)
+        const cc = getCircuitConnector(
+            e,
+            direction,
+            isLoaderInputting,
+            getBeltConnectionIndex,
+            getConnectionMask
+        )
         if (cc?.points) {
             const pos = cc.points.wire[wireKey]
             return pos && util.vectorToTuple(pos)

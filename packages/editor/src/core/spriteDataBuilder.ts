@@ -223,7 +223,15 @@ function generateConnection(e: EntityWithOwnerPrototype, data: IDrawData): reado
     const isLoaderInputting = () => data.dirType === 'input'
     const getBeltConnectionIndex = () =>
         getBeltWireConnectionIndex(data.positionGrid, data.position, data.dir)
-    const cc = getCircuitConnector(e, data.dir, isLoaderInputting, getBeltConnectionIndex)
+    const getConnectionMask = () =>
+        getPipeWireConnectionIndex(data.positionGrid, data.position, e.type)
+    const cc = getCircuitConnector(
+        e,
+        data.dir,
+        isLoaderInputting,
+        getBeltConnectionIndex,
+        getConnectionMask
+    )
     if (cc?.sprites) {
         const ccs = cc.sprites
         // Not all three exist for every connector - a transport belt has no
@@ -422,6 +430,25 @@ function getHeatConnections(position: IPoint, positionGrid: PositionGrid): boole
 }
 
 // X, H, V, SE, SW, NE and NW.
+/**
+ * The neighbour mask (N=1, E=2, S=4, W=8) that picks one of a pipe's, infinity
+ * pipe's or heat pipe's 16 circuit connectors (Factorio 2.1). Without a grid -
+ * the previews - the piece has no neighbours, which is mask 0.
+ */
+function getPipeWireConnectionIndex(
+    positionGrid: PositionGrid | undefined,
+    position: IPoint,
+    type: string
+): number {
+    if (!positionGrid) return 0
+    const connections =
+        type === 'heat-pipe'
+            ? getHeatConnections(position, positionGrid)
+            : getFluidConnections(position, positionGrid)
+    // getNeighbourData answers N, E, S, W, so index i is bit 1 << i.
+    return connections.reduce((mask, connected, i) => (connected ? mask | (1 << i) : mask), 0)
+}
+
 function getBeltWireConnectionIndex(
     positionGrid: PositionGrid | undefined,
     position: IPoint,
@@ -2741,4 +2768,4 @@ function draw_wall(e: WallPrototype): (data: IDrawData) => readonly SpriteData[]
     }
 }
 
-export { getSpriteData, getBeltWireConnectionIndex }
+export { getSpriteData, getBeltWireConnectionIndex, getPipeWireConnectionIndex }

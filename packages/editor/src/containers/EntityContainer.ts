@@ -442,7 +442,13 @@ export class EntityContainer {
                 .filter(entity => updatesEntities.has(entity.name))
                 .forEach(entity => {
                     EntityContainer.containerOf(entity.entityNumber).redraw()
-                    if (entity.type === 'transport-belt') {
+                    // These pick their wire connector by neighbours, so it moves with them.
+                    if (
+                        entity.type === 'transport-belt' ||
+                        entity.type === 'pipe' ||
+                        entity.type === 'infinity-pipe' ||
+                        entity.type === 'heat-pipe'
+                    ) {
                         G.BPC.wiresContainer.update(entity.entityNumber)
                     }
                 })

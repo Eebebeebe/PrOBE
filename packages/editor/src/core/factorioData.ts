@@ -305,7 +305,9 @@ export function getCircuitConnector(
     e: EntityWithOwnerPrototype,
     dir: number,
     isLoaderInputting: () => boolean,
-    getBeltConnectionIndex: () => number
+    getBeltConnectionIndex: () => number,
+    /** Pipes and heat pipes: which neighbours they connect to, N=1, E=2, S=4, W=8. */
+    getConnectionMask: () => number = () => 0
 ): CircuitConnectorDefinition | undefined {
     switch (e.type) {
         case 'accumulator':
@@ -348,6 +350,15 @@ export function getCircuitConnector(
                 | WallPrototype
             return connectorAt((e_resolved as WithCircuit).circuit_connector, 0)
         }
+        /*
+            Gained 16 connectors in 2.1, indexed by the neighbour mask rather
+            than by direction (HeatPipePrototype.circuit_connector in the 2.1
+            API; pipe's follow the same pattern).
+        */
+        case 'pipe':
+        case 'infinity-pipe':
+        case 'heat-pipe':
+            return connectorAt((e as WithCircuit).circuit_connector, getConnectionMask())
         /* Gained one connector per facing (N, E, S, W) in 2.1; heat-exchanger is type boiler. */
         case 'boiler':
         case 'pipe-to-ground':
