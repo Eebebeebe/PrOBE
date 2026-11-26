@@ -2,6 +2,7 @@ import EventEmitter from 'eventemitter3'
 import {
     BlueprintInsertPlan,
     IBlueprint,
+    IIcon,
     IEntity,
     InventoryPosition,
     IPoint,
@@ -95,8 +96,33 @@ export interface BlueprintEvents {
 }
 
 /** Blueprint base class */
+/** Top-level blueprint fields Blueprint models; every other field is carried verbatim. */
+const MODELLED_FIELDS = new Set([
+    'version',
+    'item',
+    'icons',
+    'label',
+    'description',
+    'entities',
+    'tiles',
+    'wires',
+    'schedules',
+    'absolute-snapping',
+    'snap-to-grid',
+    'position-relative-to-grid',
+])
+
 class Blueprint extends EventEmitter<BlueprintEvents> {
-    public name = 'Blueprint'
+    /** The label as loaded or set; undefined for an unlabelled blueprint. */
+    private label?: string
+    /*
+        Fields the editor does not model - `parameters` of parametrised
+        blueprints, `stock_connections` of trains, anything a newer game version
+        adds - kept as they came in so a save does not drop them.
+    */
+    private readonly unmodelled: Record<string, unknown> = {}
+    /** The icons as loaded, written back unchanged (type and quality included). */
+    private readonly loadedIcons?: IIcon[]
     private readonly icons = new Map<1 | 2 | 3 | 4, string>()
     public readonly wireConnections = new WireConnections(this)
     public readonly entityPositionGrid = new PositionGrid(this)
@@ -130,7 +156,15 @@ class Blueprint extends EventEmitter<BlueprintEvents> {
 
         if (data) {
             if (data.label) {
-                this.name = data.label
+                this.label = data.label
+            }
+
+            for (const [key, value] of Object.entries(data)) {
+                if (!MODELLED_FIELDS.has(key)) this.unmodelled[key] = value
+            }
+
+            if (data.icons && data.icons.length) {
+                this.loadedIcons = data.icons
             }
 
             if (data.icons) {
@@ -827,6 +861,15 @@ class Blueprint extends EventEmitter<BlueprintEvents> {
             .commit()
     }
 
+    /** The blueprint's label, or 'Blueprint' for display when it has none. */
+    public get name(): string {
+        return this.label ?? 'Blueprint'
+    }
+
+    public set name(label: string) {
+        this.label = label
+    }
+
     public serialize(): IBlueprint {
         if (!this.icons.size) {
             this.generateIcons()
@@ -871,12 +914,13 @@ class Blueprint extends EventEmitter<BlueprintEvents> {
             }
         })
         return {
-            icons: iconData,
+            ...this.unmodelled,
+            icons: this.loadedIcons ?? iconData,
             entities: this.entities.isEmpty() ? undefined : entityInfo,
             tiles: this.tiles.isEmpty() ? undefined : tileInfo,
             item: 'blueprint',
             version: getFactorioVersion(),
-            label: this.name,
+            label: this.label,
             description: this.description,
             schedules: this.scheduleStore.schedules,
             'absolute-snapping': this.absolute_snapping,

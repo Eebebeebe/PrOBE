@@ -192,6 +192,13 @@ test('every test blueprint survives the decode/serialize round trip unchanged', 
  * with it, because a different set of blueprints is a different set of
  * blueprints. The hash changing is exactly what serializing different JSON
  * should do.
+ *
+ * And from 825830683 to -1164412453 when Blueprint stopped dropping fields it
+ * does not model (PrOBE, tests/headless/blueprint-fidelity.test.ts): 97 corpus
+ * blueprints keep their `parameters` and 28 their `stock_connections`, and 215
+ * keep their icons exactly as loaded instead of gaining an explicit signal
+ * type. Every count and both position checksums held - same entities, same
+ * places - which is the signature of extra fields being written, not moved.
  */
 //
 // The values now live in tests/__fixtures__/round-trip.json (moved verbatim,
