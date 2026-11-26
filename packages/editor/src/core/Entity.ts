@@ -30,6 +30,7 @@ import FD, {
     isMiningDrill,
     isLogisticContainer,
     isModule,
+    recipeCategories,
     isRoboport,
     isUndergroundBelt,
     mapBoundingBox,
@@ -396,7 +397,7 @@ export class Entity extends EventEmitter<EntityEvents> {
 
         return Object.keys(FD.recipes)
             .map(k => FD.recipes[k])
-            .filter(recipe => e.crafting_categories.includes(recipe.category || 'crafting'))
+            .filter(recipe => recipeCategories(recipe).some(c => e.crafting_categories.includes(c)))
             .map(recipe => recipe.name)
     }
 
@@ -1420,7 +1421,7 @@ export class Entity extends EventEmitter<EntityEvents> {
             this.type === 'assembling-machine' &&
             this.name !== 'assembling-machine' &&
             tRecipe &&
-            FD.recipes[tRecipe].category === 'crafting-with-fluid'
+            recipeCategories(FD.recipes[tRecipe]).includes('crafting-with-fluid')
         ) {
             this.direction = sourceEntity.direction
         }

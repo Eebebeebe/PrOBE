@@ -133,6 +133,21 @@ export function recipeResults(recipe: RecipePrototype): readonly ProductPrototyp
 }
 
 /**
+ * The crafting categories a recipe belongs to; a machine can craft it when any
+ * of them is in the machine's crafting_categories.
+ *
+ * Factorio 2.1 replaced `category` (one string, default "crafting") with
+ * `categories` (a list that may not be empty, default {"crafting"}).
+ * typed-factorio still describes 2.0, so the new field is read untyped. 2.0
+ * data (`category` plus `additional_categories`) keeps working.
+ */
+export function recipeCategories(recipe: RecipePrototype): readonly string[] {
+    const categories = (recipe as { categories?: readonly string[] }).categories
+    if (Array.isArray(categories) && categories.length > 0) return categories
+    return [recipe.category ?? 'crafting', ...(recipe.additional_categories ?? [])]
+}
+
+/**
  * A prototype's display name, as a string that can go straight into a `Text`.
  *
  * typed-factorio types `localised_name` as `LocalisedString`, which is the
