@@ -37,6 +37,11 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         setup::extract(&output_dir, &base_factorio_dir).await?;
     }
 
+    // EXPORT_ONLY=1 stops here instead of serving the output on port 8081.
+    if std::env::var("EXPORT_ONLY").is_ok_and(|v| v == "1") {
+        return Ok(());
+    }
+
     let static_ = Static::new(Path::new("data/output/"));
     let listener = TcpListener::bind(std::net::SocketAddr::from(([127, 0, 0, 1], 8081))).await?;
 

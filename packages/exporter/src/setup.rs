@@ -56,31 +56,6 @@ pub fn local_game_data_path(factorio_dir: &Path) -> PathBuf {
     }
 }
 
-/// Returns the Factorio user data directory (where mods/ and script-output/ live).
-/// - macOS: ~/Library/Application Support/factorio
-/// - Linux: ~/.factorio
-/// - Windows: %APPDATA%\Factorio
-pub fn user_data_dir() -> Result<PathBuf, Box<dyn Error>> {
-    match std::env::consts::OS {
-        "macos" | "linux" => {
-            let home = get_env_var!("HOME")?;
-            let path = match std::env::consts::OS {
-                "macos" => PathBuf::from(home)
-                    .join("Library")
-                    .join("Application Support")
-                    .join("factorio"),
-                _ => PathBuf::from(home).join(".factorio"),
-            };
-            Ok(path)
-        }
-        "windows" => {
-            let appdata = get_env_var!("APPDATA")?;
-            Ok(PathBuf::from(appdata).join("Factorio"))
-        }
-        os => Err(format!("unsupported OS: {}", os).into()),
-    }
-}
-
 /// Validates that FACTORIO_DIR points to a usable Factorio installation.
 /// Returns clear error messages if the executable or data dir are missing.
 pub fn validate_local_install(factorio_dir: &Path) -> Result<(), Box<dyn Error>> {
@@ -333,11 +308,32 @@ pub async fn extract(output_dir: &Path, base_factorio_dir: &Path) -> Result<(), 
 pub async fn extract_local(output_dir: &Path, factorio_dir: &Path) -> Result<(), Box<dyn Error>> {
     let factorio_executable = local_executable_path(factorio_dir);
     let factorio_data = local_game_data_path(factorio_dir);
-    let user_data = user_data_dir()?;
 
-    let mod_dir = user_data.join("mods").join("export-data");
+    // Run the game against a throwaway config and write-data directory, so the
+    // export never touches the player's own mods, saves or settings. The read
+    // path is absolute because on Linux bin/x64/factorio is a wrapper that execs
+    // bin/x64_/factorio, which breaks the usual __PATH__executable__/../data.
+    let work_dir = std::env::temp_dir().join("__PROBE_EXPORT__");
+    if work_dir.exists() {
+        tokio::fs::remove_dir_all(&work_dir).await?;
+    }
+    let write_data = work_dir.join("write-data");
+    let config_path = work_dir.join("config.ini");
+    let read_data = std::fs::canonicalize(&factorio_data)?;
+    tokio::fs::create_dir_all(&write_data).await?;
+    tokio::fs::write(
+        &config_path,
+        format!(
+            "[path]\nread-data={}\nwrite-data={}\n",
+            read_data.display(),
+            write_data.display()
+        ),
+    )
+    .await?;
+
+    let mod_dir = write_data.join("mods").join("export-data");
     let scenario_dir = mod_dir.join("scenarios").join("export-data");
-    let extracted_data_path = user_data.join("script-output").join("data.json");
+    let extracted_data_path = write_data.join("script-output").join("data.json");
 
     let info = include_str!("export-data/info.json");
     let script = include_str!("export-data/control.lua");
@@ -362,16 +358,35 @@ pub async fn extract_local(output_dir: &Path, factorio_dir: &Path) -> Result<(),
 
     println!("Running Factorio to generate data...");
 
+    let config_arg = config_path.to_str().ok_or("config path is not UTF-8")?;
     Command::new(&factorio_executable)
+        .args(["--config", config_arg])
         .args(["--start-server-load-scenario", "export-data/export-data"])
         .stdout(std::process::Stdio::null())
         .spawn()?
         .wait()
         .await?;
 
-    let content = tokio::fs::read_to_string(&extracted_data_path).await?;
+    let content = tokio::fs::read_to_string(&extracted_data_path)
+        .await
+        .map_err(|e| {
+            format!(
+                "Factorio did not write \"{}\" ({}); see {}/factorio-current.log",
+                extracted_data_path.display(),
+                e,
+                write_data.display()
+            )
+        })?;
     tokio::fs::create_dir_all(&output_dir).await?;
     tokio::fs::write(output_dir.join("data.json"), &content).await?;
+
+    // SKIP_SPRITES=1 refreshes data.json alone, e.g. to see what a new game
+    // version changed before re-encoding thousands of sprites.
+    if env::var("SKIP_SPRITES").is_ok_and(|v| v == "1") {
+        tokio::fs::remove_dir_all(&work_dir).await?;
+        println!("data.json written; sprites skipped (SKIP_SPRITES=1)");
+        return Ok(());
+    }
 
     // Process sprites using game data dir from local install
     let metadata_path = output_dir.join("metadata.json");
@@ -439,18 +454,11 @@ pub async fn extract_local(output_dir: &Path, factorio_dir: &Path) -> Result<(),
     progress.finish();
     tokio::fs::remove_dir_all(&tmp_dir).await?;
 
-    // Clean up export-data mod and scenario from user data dir
-    if let Err(e) = tokio::fs::remove_dir_all(&mod_dir).await {
+    // The mod, scenario and the game's write data all live in the throwaway directory.
+    if let Err(e) = tokio::fs::remove_dir_all(&work_dir).await {
         eprintln!(
-            "Warning: failed to clean up mod directory \"{}\": {}",
-            mod_dir.display(),
-            e
-        );
-    }
-    if let Err(e) = tokio::fs::remove_dir_all(&scenario_dir).await {
-        eprintln!(
-            "Warning: failed to clean up scenario directory \"{}\": {}",
-            scenario_dir.display(),
+            "Warning: failed to clean up \"{}\": {}",
+            work_dir.display(),
             e
         );
     }
@@ -469,6 +477,20 @@ async fn get_len_and_mtime(path: &Path) -> Result<(u64, u64), Box<dyn Error>> {
         .map(|dur| dur.as_secs())
         .unwrap_or(0);
     Ok((metadata.len(), mtime))
+}
+
+/// The basisu binary for this OS: the bundled ./basisu (macOS) or
+/// ./basisu.exe (Windows), or on Linux the one build-basisu.sh produces.
+/// BASISU overrides all three.
+fn basisu_executable() -> PathBuf {
+    if let Ok(path) = env::var("BASISU") {
+        return PathBuf::from(path);
+    }
+    match std::env::consts::OS {
+        "linux" => PathBuf::from("./target/basisu"),
+        "windows" => PathBuf::from("./basisu.exe"),
+        _ => PathBuf::from("./basisu"),
+    }
 }
 
 async fn compress_next_img(
@@ -493,8 +515,7 @@ async fn compress_next_img(
 
             tokio::fs::create_dir_all(out_path.parent().unwrap()).await?;
 
-            let basisu_executable = "./basisu";
-            let status = Command::new(basisu_executable)
+            let status = Command::new(basisu_executable())
                 // .args(&["-comp_level", "2"])
                 .args(["-no_multithreading"])
                 // .args(&["-ktx2"])
