@@ -1,6 +1,7 @@
 /*
     Issue #206. The editor's wheel zoom has no floor, a soft ceiling and an
-    asymmetric step; the design (docs/superpowers/specs/2026-08-10-zoom-levels-design.md)
+    asymmetric step; the design (docs/superpowers/specs/2026-08-10-zoom-levels-design.md,
+    removed in the PrOBE cleanup - `git show fdf7a047:<that path>`)
     settles a fixed ladder whose endpoints come from the game rather than from
     reasoning. This is the probe that measures them.
 

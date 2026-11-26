@@ -3,7 +3,8 @@
 
     Source: tools/oracle/fixtures/zoom-limits.json, captured against the 2.0.77
     client with a human at the wheel over four sessions. Design and the reasoning
-    behind each decision: docs/superpowers/specs/2026-08-10-zoom-levels-design.md.
+    behind each decision: docs/superpowers/specs/2026-08-10-zoom-levels-design.md,
+    removed in the PrOBE cleanup - read it with `git show fdf7a047:<that path>`.
 
     Pure - no pixi, no FD, no globals - so `zoomLevels.test.ts` runs under
     `vp test` in CI, following railSignalSnapping.ts and throughput.ts. When this

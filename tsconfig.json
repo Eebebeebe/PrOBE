@@ -16,10 +16,8 @@
         // listed there is one `strict` turns on, and the last one to be cleared
         // was `strictPropertyInitialization`, at 24 errors across 13 files.
         //
-        // Every package type-checks at 0 under it - editor, website and worker -
-        // and `vp check` enforces that in CI via lint.options.typeCheck. The
-        // worker was already `strict: true` in its own tsconfig, which does not
-        // extend this one.
+        // Every package type-checks at 0 under it - editor and website - and
+        // `vp check` enforces that in CI via lint.options.typeCheck.
         //
         // How the last flag was landed, since the next one will want it: it was
         // turned on in a second project, packages/editor/tsconfig.strict.json,

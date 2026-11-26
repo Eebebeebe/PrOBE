@@ -74,5 +74,4 @@ is the one in it today.
 
 **Do not reintroduce upstream's artwork.** The project it grew out of asked forks
 not to keep its logo, so people would not assume a shared maintainer. That is the
-reason all of this exists - see
-`docs/superpowers/specs/2026-08-05-hard-fork-design.md`.
+reason all of this exists.

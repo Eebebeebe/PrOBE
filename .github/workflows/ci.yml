@@ -10,7 +10,7 @@ on:
   workflow_dispatch:
 
 # Cancel superseded runs: a newer PR push drops the stale check run, and a newer
-# push to the deploy branch cancels an in-flight run (including its deploy job).
+# push to main cancels an in-flight run.
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: true
@@ -62,8 +62,7 @@ jobs:
 
   # packages/exporter is Rust, and until now nothing compiled it - so a broken
   # crate bump or a breaking API change in a dependency was invisible until
-  # somebody built it by hand on macOS. That was the reason .github/renovate.json5
-  # had to attach a "CI does not verify this" warning to every cargo PR.
+  # somebody built it by hand on macOS.
   #
   # This COMPILES the exporter; it cannot RUN it, and the difference is worth
   # knowing before anyone extends this job. Running it needs a Factorio install to
@@ -73,13 +72,11 @@ jobs:
   # runtime, there is no build.rs, and no dependency is platform-gated.
   #
   # `--locked` is the load-bearing flag. It fails if Cargo.lock disagrees with
-  # Cargo.toml, which is exactly the mistake a dependency PR can make - Renovate
-  # updates the lockfile itself, and this is what checks that it did.
+  # Cargo.toml, which is exactly the mistake a dependency bump can make, and this
+  # is what checks that the lockfile was updated with it.
   #
   # Deliberately a separate job rather than a step in `checks`: it runs in parallel
-  # instead of adding to that job's wall clock, and `deploy` below stays gated on
-  # `checks` alone, since the deployed artifact is the website and contains nothing
-  # from the exporter.
+  # instead of adding to that job's wall clock.
   rust:
     name: Rust exporter
     runs-on: ubuntu-latest
@@ -193,7 +190,6 @@ jobs:
   # A separate job rather than steps in `checks`, for the same reason `rust` is:
   # it runs in parallel instead of adding to that job's wall clock, `checks`
   # itself being 46s.
-  # `deploy` waits on this as well as on `checks` - see the note there.
   e2e:
     name: Playwright ${{ matrix.shard }}/${{ strategy.job-total }}
     runs-on: ubuntu-latest
@@ -217,8 +213,8 @@ jobs:
     #
     # Measured over this job's own three runs. The slowest leg is the wall
     # clock, not the mean, and it came out at 213s, 225s and 250s - so 774s
-    # becomes roughly three to four minutes, a 3x-3.6x speedup, and the deploy
-    # behind it waits minutes rather than the thirteen it did unsharded.
+    # becomes roughly three to four minutes, a 3x-3.6x speedup over the thirteen
+    # it took unsharded.
     #
     # The spread is the point of writing three numbers instead of one. Each
     # sample in turn looked precise enough to quote, and each was contradicted by
@@ -295,7 +291,7 @@ jobs:
       # opinion about, and the whole point of `vp install --frozen-lockfile` two
       # steps up is that nothing else in the run is. It costs ~990 lines of
       # lockfile for a dev-only static file server, and buys a reproducible
-      # sprite server plus Renovate tracking the thing.
+      # sprite server.
       #
       # stdout is redirected to a file rather than inherited, which is not
       # cosmetic: a backgrounded process holding the step's stdout pipe open can

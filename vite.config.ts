@@ -9,11 +9,7 @@ export default defineConfig({
         env: {
             builtin: true,
         },
-        ignorePatterns: [
-            'packages/website/dist',
-            'packages/editor/src/basis',
-            'packages/exporter',
-        ],
+        ignorePatterns: ['packages/website/dist', 'packages/editor/src/basis', 'packages/exporter'],
         rules: {
             'constructor-super': 'error',
             'for-direction': 'error',
