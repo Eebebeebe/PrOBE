@@ -17,14 +17,18 @@ describe('flipping entities in Node', () => {
 
     it('refuses to flip a train stop with a typed Error', () => {
         const stop = entity('train-stop')
-        expect(() => stop.getFlippedCopy(false)).toThrow(IllegalFlipError)
+        for (const vertical of [false, true]) {
+            expect(() => stop.getFlippedCopy(vertical)).toThrow(IllegalFlipError)
+        }
+        let thrown: unknown
         try {
             stop.getFlippedCopy(true)
         } catch (e) {
-            expect(e).toBeInstanceOf(Error)
-            expect((e as Error).name).toBe('IllegalFlipError')
-            expect((e as Error).message).toBe('train-stop cannot be flipped')
+            thrown = e
         }
+        expect(thrown).toBeInstanceOf(Error)
+        expect((thrown as Error).name).toBe('IllegalFlipError')
+        expect((thrown as Error).message).toBe('train-stop cannot be flipped')
     })
 
     it('flips a belt horizontally', () => {
