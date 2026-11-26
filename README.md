@@ -31,6 +31,40 @@ npx playwright test      # browser tests (needs `npm run localpreview` running)
 The committed sprite and prototype data in `packages/exporter/data/output` is what the
 editor loads; the exporter that produces it needs a Factorio install.
 
+`scripts/test-all.sh` runs every layer in order (check, unit and headless tests, the
+type-check gate) and stops at the first failure; `scripts/test-all.sh --e2e` also starts
+the dev servers and runs the browser suite.
+
+## Testing with Docker
+
+The [`Dockerfile`](./Dockerfile) runs everything PrOBE is tested with, in a container, with
+nothing installed on the host but Docker:
+
+```sh
+docker build -t probe .                     # default target "full"
+docker run --rm probe                       # check, unit + headless tests, gate, browser suite
+
+docker build --target unit -t probe-unit .  # the same without the browser suite
+docker run --rm probe-unit                  # about a minute
+```
+
+How it is built, and why:
+
+- **One image, two targets.** `full` (the default) is "everything that was tested":
+  format, lint and type check, the unit and headless Node tests, the type-check gate and the
+  Playwright browser suite (about 15-20 minutes). `unit` skips the browser for a fast check.
+- **The same script as by hand.** Both targets run `scripts/test-all.sh`, so the container
+  cannot test something different from what a developer runs locally.
+- **Pinned and reproducible.** Node comes from `.node-version`, npm is the version the
+  lockfile was written with, and dependencies are installed with `npm ci`, which fails
+  instead of drifting if `package-lock.json` and `package.json` disagree.
+- **The browser comes from Playwright.** `npx playwright install --with-deps chromium`
+  installs the Chromium build that matches `@playwright/test`, plus its system libraries, so
+  the browser suite runs on the officially supported Linux setup.
+- **Build context.** `.dockerignore` leaves out `.git`, `node_modules` and generated output.
+  The ~460 MB of sprite data in `packages/exporter/data/output` stays in, because the
+  browser suite renders with it.
+
 ## Credits and license
 
 PrOBE is MIT licensed, see [LICENSE](./LICENSE).
