@@ -54,6 +54,7 @@ This is the part that saves time, and it is not "open a disassembler":
 | `probe-zoom-limits.mjs`              | What zoom range and what per-notch step the game uses (#206, #211)            |
 | `probe-blueprint-snapping.mjs`       | Which snapping mode carries `position-relative-to-grid` (#226, PR #222)       |
 | `probe-blueprint-grid-position.mjs`  | Whether setting a grid position moves the entities (PR #222)                  |
+| `probe-text-limits.mjs`              | Which blueprint text fields survive a round trip, and how long (PrOBE code)   |
 
 One script here is not a probe and asks the game nothing:
 
