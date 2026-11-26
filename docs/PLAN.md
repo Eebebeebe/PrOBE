@@ -394,3 +394,40 @@ These override the open questions in section 6 and the critic's section 7.
    download), but **never replace anything automatically**.
 6. **Docker (D9):** the user leaves this to us, as long as the final Dockerfile runs everything that was tested.
    The choice and the reasons go in the README when the Dockerfile lands.
+
+---
+
+## 10. Findings since the plan was written
+
+**Spike S2 (core in Node), done.** Under Vitest the core already imported, loaded `data.json`, decoded
+the Basic builder book and re-encoded it. The only difference was the book `version` (2.1.25 in, 2.0.45 out),
+so the import-cycle risk is retired. Phase 2 steps 2.1–2.7 have since landed. The core imports no `pixi.js`,
+globals, `containers/` or `UI/` (`tests/headless/core-imports.test.ts`), and the URL loader moved to
+`packages/editor/src/sources.ts`.
+
+**Spike S1 (text limits), done. This replaces the 499/478/442 figures assumed above.** Source:
+`tools/oracle/probe-text-limits.mjs` and `tools/oracle/fixtures/text-limits.json`, Factorio 2.1.25. An
+independent re-run confirmed every boundary.
+
+| Carrier                                                         | Limit                                       |
+| --------------------------------------------------------------- | ------------------------------------------- |
+| blueprint / book `description`, nested blueprint `description`  | 500 bytes UTF-8                             |
+| blueprint / book `label`                                        | 200 bytes                                   |
+| constant / decider / arithmetic combinator `player_description` | 500 bytes                                   |
+| display-panel `text`                                            | 500 bytes; train-stop `station`: 1024 bytes |
+| **entity `tags`** (no in-game UI)                               | **no limit found** (128 MiB exact)          |
+| top-level blueprint / book `tags`                               | not kept at all                             |
+
+- **How truncation works:** the game cuts silently, by byte (possibly mid character), and still reports a
+  successful import. PrOBE must measure UTF-8 bytes itself and refuse, or cut at a code-point boundary.
+- **Empty strings:** an empty description or label is dropped on export.
+- **Tags and building:** entity tags survive import and export, the library and ghosts. They are **lost when
+  the entity is built in the world and re-blueprinted**, but `player_description` survives that.
+
+**Consequence for storage (D6), still to be confirmed with the user:**
+
+- **Code:** the program goes in a constant combinator's `tags` inside a `#code` blueprint.
+- **Marker:** `player_description` holds a short marker with a hash, so a lost program is detected and
+  explained instead of looking like "no code".
+- **In-game editing:** that is only possible for code under 500 bytes, or by splitting it across several
+  combinator comments, which is fragile. The primary editor is the browser.
