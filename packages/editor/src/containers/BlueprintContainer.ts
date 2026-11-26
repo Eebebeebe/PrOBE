@@ -8,6 +8,8 @@ import {
     FederatedPointerEvent,
     Ticker,
     isMobile,
+    Sprite,
+    Texture,
 } from 'pixi.js'
 import FD from '../core/factorioData'
 import G from '../common/globals'
@@ -34,6 +36,7 @@ import { Axis, PaintContainer } from './PaintContainer'
 import { PaintBlueprintContainer } from './PaintBlueprintContainer'
 import { GridData } from './GridData'
 import { WiresPanel } from '../UI/WiresPanel'
+import { IVisualization } from '../core/generators'
 
 export enum GridPattern {
     CHECKER = 'checker',
@@ -1002,6 +1005,9 @@ export class BlueprintContainer extends Container {
         this.bp.on('create-entity', onCreateEntity)
         this.bp.on('remove-entity', onRemoveEntity)
         this.bp.on('create-tile', onCreateTile)
+        const onGeneratePipesDebug = (visualizations: IVisualization[][]): void =>
+            this.drawGeneratorVisualizations(visualizations)
+        this.bp.on('generate-pipes-debug', onGeneratePipesDebug)
 
         const onConnectionCreated = (hash: string, connection: IConnection): void => {
             this.wiresContainer.connect(hash, connection)
@@ -1019,6 +1025,7 @@ export class BlueprintContainer extends Container {
             this.bp.off('create-entity', onCreateEntity)
             this.bp.off('remove-entity', onRemoveEntity)
             this.bp.off('create-tile', onCreateTile)
+            this.bp.off('generate-pipes-debug', onGeneratePipesDebug)
 
             this.bp.wireConnections.off('create', onConnectionCreated)
             this.bp.wireConnections.off('remove', onConnectionRemoved)
@@ -1026,6 +1033,41 @@ export class BlueprintContainer extends Container {
 
         this.sortEntities()
         this.centerViewport()
+    }
+
+    /** Animates the oil outpost generators' search paths (debug mode of generatePipes). */
+    private drawGeneratorVisualizations(visualizations: IVisualization[][]): void {
+        // TODO: make a container special for debugging purposes
+        this.wiresContainer.removeChildren()
+
+        const timePerVis = 1000
+        visualizations
+            .filter(vis => vis.length)
+            .forEach((vis, i) => {
+                vis.forEach((v, j, arr) => {
+                    setTimeout(
+                        () => {
+                            const tint = v.color ? v.color : 0xffffff * Math.random()
+                            v.path.forEach((p, k) => {
+                                setTimeout(
+                                    () => {
+                                        const s = new Sprite(Texture.WHITE)
+                                        s.tint = tint
+                                        s.anchor.set(0.5)
+                                        s.alpha = v.alpha
+                                        s.width = v.size
+                                        s.height = v.size
+                                        s.position.set(p.x * 32, p.y * 32)
+                                        this.wiresContainer.addChild(s)
+                                    },
+                                    k * (timePerVis / arr.length / v.path.length)
+                                )
+                            })
+                        },
+                        j * (timePerVis / arr.length) + i * timePerVis
+                    )
+                })
+            })
     }
 
     public destroy(): void {

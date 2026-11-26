@@ -1,5 +1,4 @@
 import EventEmitter from 'eventemitter3'
-import { Sprite, Texture } from 'pixi.js'
 import {
     BlueprintInsertPlan,
     IBlueprint,
@@ -13,7 +12,6 @@ import {
     LogisticSections,
     SignalType,
 } from '../types'
-import G from '../common/globals'
 import util from '../common/util'
 import FD, { getEntitySize, getModuleInventoryIndex, hasModuleFunctionality } from './factorioData'
 import { Entity } from './Entity'
@@ -92,6 +90,8 @@ export interface BlueprintEvents {
     'create-entity': [entity: Entity]
     'remove-entity': []
     'create-tile': [tile: Tile]
+    /** Fired by generatePipes when oilOutpostSettings.DEBUG is on: the generators' search paths, for a renderer to draw. */
+    'generate-pipes-debug': [visualizations: IVisualization[][]]
 }
 
 /** Blueprint base class */
@@ -707,40 +707,8 @@ class Blueprint extends EventEmitter<BlueprintEvents> {
         this.history.commitTransaction()
         this.history.logging = true
 
-        // Create visualizations
-        if (!DEBUG) return
-
-        // TODO: make a container special for debugging purposes
-        G.BPC.wiresContainer.removeChildren()
-
-        const timePerVis = 1000
-        visualizations
-            .filter(vis => vis.length)
-            .forEach((vis, i) => {
-                vis.forEach((v, j, arr) => {
-                    setTimeout(
-                        () => {
-                            const tint = v.color ? v.color : 0xffffff * Math.random()
-                            v.path.forEach((p, k) => {
-                                setTimeout(
-                                    () => {
-                                        const s = new Sprite(Texture.WHITE)
-                                        s.tint = tint
-                                        s.anchor.set(0.5)
-                                        s.alpha = v.alpha
-                                        s.width = v.size
-                                        s.height = v.size
-                                        s.position.set(p.x * 32, p.y * 32)
-                                        G.BPC.wiresContainer.addChild(s)
-                                    },
-                                    k * (timePerVis / arr.length / v.path.length)
-                                )
-                            })
-                        },
-                        j * (timePerVis / arr.length) + i * timePerVis
-                    )
-                })
-            })
+        // Hand the generators' search paths to whoever draws them (BlueprintContainer).
+        if (DEBUG) this.emit('generate-pipes-debug', visualizations)
     }
 
     /** behaves like in Factorio 0.17.14 */

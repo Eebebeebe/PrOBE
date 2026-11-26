@@ -27,7 +27,7 @@ const ALLOWED_OUTSIDE_CORE = new Set(['../types', '../common/util'])
 /** Package imports core may never use. */
 const FORBIDDEN_PACKAGES = [/^pixi\.js(\/|$)/, /^@pixi\//]
 
-const KNOWN_VIOLATIONS = new Set(['Blueprint.ts -> pixi.js', 'Blueprint.ts -> ../common/globals'])
+const KNOWN_VIOLATIONS = new Set<string>([])
 
 function sourceFiles(dir: string): string[] {
     return fs.readdirSync(dir, { withFileTypes: true }).flatMap(d => {
