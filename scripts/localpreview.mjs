@@ -33,9 +33,10 @@ export function parseArgs(argv) {
 }
 
 // Probes by connecting rather than by binding, and checks both loopback
-// families. Vite binds localhost, which on macOS is ::1 only - a bind probe
-// against 127.0.0.1 succeeds while Vite is running and would report the port
-// free, which is the one answer this check must never give.
+// families. Vite itself binds 127.0.0.1 (packages/website/vite.config.js),
+// but anything else on the port may hold only ::1 - which is what Vite did
+// before, binding "localhost" - and a bind probe against 127.0.0.1 would then
+// succeed and report the port free, the one answer this check must never give.
 function isHostFree(port, host) {
     return new Promise(resolve => {
         const socket = connect({ port, host })

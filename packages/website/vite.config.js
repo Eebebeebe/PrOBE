@@ -49,8 +49,16 @@ export default defineConfig(async ({ command, mode }) => {
                 'pixi.js/basis',
             ],
         },
-        preview: { port: 8080 },
+        /*
+            Listen on 127.0.0.1, not Vite's default "localhost". Vite binds only
+            the first address the OS returns for localhost, which on many Linux
+            setups (and on macOS) is ::1 alone - then a browser that reaches
+            localhost over IPv4 gets "connection refused". Every client that
+            resolves localhost tries 127.0.0.1, so binding it serves them all.
+        */
+        preview: { host: '127.0.0.1', port: 8080 },
         server: {
+            host: '127.0.0.1',
             port: 8080,
             proxy,
         },
