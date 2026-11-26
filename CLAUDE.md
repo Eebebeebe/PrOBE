@@ -39,19 +39,24 @@ A university project (Studienarbeit). On top of the editor, PrOBE must run
 
 ```sh
 npm install
-vp check            # format + lint + type check - run before every commit
-vp test             # unit tests
-npm run localpreview   # dev servers: Vite on 8080, sprite data on 8081
-npx playwright test    # browser suite; needs localpreview running
+npx vp check             # format + lint + type check - run before every commit
+npx vp test              # vitest: editor units, scripts/*.test.mjs, tests/*.test.ts
+npm run type-check:gate  # CI also runs this after vp check
+npm run localpreview     # dev servers: Vite on 8080, sprite data on 8081
+npx playwright test      # browser suite; needs localpreview running, workers=1
 ```
+
+`vp` is not on PATH unless Vite+ is installed globally; `npx vp` uses the local copy.
+Run Playwright from the repo root and never with sudo.
 
 ## Known issues and open work
 
 - Rails do not behave correctly yet.
 - Quality exists only on filters; entities and modules do not model it.
-- In dev, `/corsproxy` is proxied to the previous project's production site
-  (`packages/website/vite.config.js`), so `?source=` imports depend on someone else's server.
-  Replace it with a local implementation.
+- TODO: `/corsproxy` (used by `?source=` imports, `bpString.ts`) is only served in dev,
+  where `packages/website/vite.config.js` proxies it to the previous project's production
+  site; the production handler (`functions/corsproxy.js`, Cloudflare) was removed. Replace
+  it with a local implementation.
 - `Blueprint.ts`, `Entity.ts` and `bpString.ts` still reach into Pixi and the `G` globals
   in a few places; the core must become headless so the scripting engine can run in Node.
 
