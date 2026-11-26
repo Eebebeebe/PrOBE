@@ -11,6 +11,9 @@ export class CoreSettings {
      * the game does. Off lets the editor move wired entities freely.
      */
     public limitWireReach = true
+
+    /** Debug mode: log decoded blueprint data and every history change. */
+    public debug = false
 }
 
 export const coreSettings = new CoreSettings()

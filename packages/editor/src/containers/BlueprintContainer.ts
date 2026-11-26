@@ -380,7 +380,7 @@ export class BlueprintContainer extends Container {
 
         this.openEditor = (): boolean => {
             if (this.mode === EditorMode.EDIT) {
-                if (G.debug) {
+                if (coreSettings.debug) {
                     console.log(this.hovered.entity.serialize())
                 }
 

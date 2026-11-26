@@ -1,7 +1,7 @@
 import Ajv, { ErrorObject, KeywordDefinition } from 'ajv'
 import * as pako from 'pako'
 import { IBlueprint, IBlueprintBook, IBlueprintBookEntry } from '../types'
-import G from '../common/globals'
+import { coreSettings } from './config'
 import FD from './factorioData'
 import blueprintSchema from './blueprintSchema.json'
 import { Blueprint } from './Blueprint'
@@ -202,7 +202,7 @@ function decode(str: string): Promise<Blueprint | Book> {
             reject(new CorruptedBlueprintStringError(e))
         }
     }).then(data => {
-        if (G.debug) console.log(data)
+        if (coreSettings.debug) console.log(data)
         loadWarnings = []
         if (!validate(data)) {
             const errors = validate.errors

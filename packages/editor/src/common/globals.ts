@@ -4,8 +4,6 @@ import { UIContainer } from '../UI/UIContainer'
 import { BlueprintContainer } from '../containers/BlueprintContainer'
 import { ActionRegistry } from '../actions'
 
-const debug = false
-
 export interface ILogMessage {
     text: string
     type: 'success' | 'info' | 'warning' | 'error'
@@ -44,7 +42,6 @@ const logger: Logger = msg => {
  * carry only what genuinely has a value at module scope.
  */
 interface Globals {
-    debug: boolean
     app: Application<Renderer<HTMLCanvasElement>>
     BPC: BlueprintContainer
     UI: UIContainer
@@ -105,7 +102,6 @@ function getTexture(path: string, x = 0, y = 0, w = 0, h = 0): Texture {
 // The cast is the whole of the "assigned by Editor.init" protocol, in one place
 // rather than spread across five declarations.
 export default {
-    debug,
     getTexture,
     logger,
 } as Globals

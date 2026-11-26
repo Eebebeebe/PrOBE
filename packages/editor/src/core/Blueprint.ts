@@ -25,6 +25,7 @@ import { History } from './History'
 import { Tile } from './Tile'
 import { need } from './need'
 import { getFactorioVersion } from './factorioVersion'
+import { coreSettings } from './config'
 
 export interface IOilOutpostSettings extends Record<string, string | boolean | number> {
     DEBUG: boolean
@@ -387,7 +388,7 @@ class Blueprint extends EventEmitter<BlueprintEvents> {
 
         // makes initial entities non undoable and resets the history if the user cleared the editor
         this.history.reset()
-        this.history.logging = G.debug
+        this.history.logging = coreSettings.debug
 
         return this
     }

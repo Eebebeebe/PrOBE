@@ -11,6 +11,7 @@ import { Application, TextureSource, setBasisTranscoderPath, Assets } from 'pixi
 import basisTranscoderJS from './basis/transcoder.1.16.4.js?url'
 import basisTranscoderWASM from './basis/transcoder.1.16.4.wasm?url'
 import { loadData } from './core/factorioData'
+import { coreSettings } from './core/config'
 import G, { Logger } from './common/globals'
 import { Entity } from './core/Entity'
 import { Blueprint, oilOutpostSettings, IOilOutpostSettings } from './core/Blueprint'
@@ -68,7 +69,7 @@ export class Editor {
 
         G.UI = new UIContainer()
         G.app.stage.addChild(G.UI)
-        G.UI.showDebuggingLayer = G.debug
+        G.UI.showDebuggingLayer = coreSettings.debug
     }
 
     public get moveSpeed(): number {
@@ -282,10 +283,10 @@ export class Editor {
     }
 
     public get debug(): boolean {
-        return G.debug
+        return coreSettings.debug
     }
     public set debug(debug: boolean) {
-        G.debug = debug
+        coreSettings.debug = debug
         G.UI.showDebuggingLayer = debug
         if (G.bp) {
             G.bp.history.logging = debug
