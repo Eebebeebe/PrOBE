@@ -5,6 +5,18 @@
     setters (Editor.limitWireReach and so on); the scripting engine and tests set
     them directly.
 */
+/**
+ * Where the core's diagnostics go: decode warnings, unknown prototypes, history
+ * logging in debug mode, generator statistics. `console` satisfies it, and is
+ * the default, so the browser editor logs exactly as before; the scripting
+ * engine and tests swap in their own to capture or forward the messages.
+ */
+export interface CoreLogger {
+    log(...data: unknown[]): void
+    warn(...data: unknown[]): void
+    clear(): void
+}
+
 export class CoreSettings {
     /**
      * Refuse entity moves that would stretch a wire past its maximum reach, as
@@ -14,6 +26,9 @@ export class CoreSettings {
 
     /** Debug mode: log decoded blueprint data and every history change. */
     public debug = false
+
+    /** Receives every message the core would otherwise write to the console. */
+    public logger: CoreLogger = console
 }
 
 export const coreSettings = new CoreSettings()

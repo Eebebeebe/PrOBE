@@ -588,7 +588,7 @@ class Blueprint extends EventEmitter<BlueprintEvents> {
 
         const visualizations: IVisualization[][] = []
 
-        console.log('Generating pipes...')
+        coreSettings.logger.log('Generating pipes...')
 
         const T = util.timer('Total generation')
 
@@ -601,10 +601,13 @@ class Blueprint extends EventEmitter<BlueprintEvents> {
         const GP = generators.generatePipes(pumpjacks, MIN_GAP_BETWEEN_UNDERGROUNDS)
         visualizations.push(GP.visualizations)
 
-        console.log('Pipes:', GP.info.nrOfPipes)
-        console.log('Underground Pipes:', GP.info.nrOfUPipes)
-        console.log('Pipes replaced by underground pipes:', GP.info.nrOfPipesReplacedByUPipes)
-        console.log(
+        coreSettings.logger.log('Pipes:', GP.info.nrOfPipes)
+        coreSettings.logger.log('Underground Pipes:', GP.info.nrOfUPipes)
+        coreSettings.logger.log(
+            'Pipes replaced by underground pipes:',
+            GP.info.nrOfPipesReplacedByUPipes
+        )
+        coreSettings.logger.log(
             'Ratio (pipes replaced/underground pipes):',
             GP.info.nrOfPipesReplacedByUPipes / GP.info.nrOfUPipes
         )
@@ -628,8 +631,8 @@ class Blueprint extends EventEmitter<BlueprintEvents> {
             visualizations.push(GB.visualizations)
 
             if (BEACONS) {
-                console.log('Beacons:', GB.info.totalBeacons)
-                console.log('Effects given by beacons:', GB.info.effectsGiven)
+                coreSettings.logger.log('Beacons:', GB.info.totalBeacons)
+                coreSettings.logger.log('Effects given by beacons:', GB.info.effectsGiven)
             }
 
             GBT.stop()
@@ -647,7 +650,7 @@ class Blueprint extends EventEmitter<BlueprintEvents> {
         const GPO = generators.generatePoles(entitiesForPoleGen)
         visualizations.push(GPO.visualizations)
 
-        console.log('Power Poles:', GPO.info.totalPoles)
+        coreSettings.logger.log('Power Poles:', GPO.info.totalPoles)
         GPOT.stop()
 
         T.stop()

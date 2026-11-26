@@ -157,7 +157,7 @@ function stripUnknownPrototypes(data: StringData): StrippedNames {
                 return true
             })
             if (bp.entities.length < before) {
-                console.warn(`Stripped ${before - bp.entities.length} unknown entities`)
+                coreSettings.logger.warn(`Stripped ${before - bp.entities.length} unknown entities`)
             }
         }
         if (bp.tiles) {
@@ -170,7 +170,7 @@ function stripUnknownPrototypes(data: StringData): StrippedNames {
                 return true
             })
             if (bp.tiles.length < before) {
-                console.warn(`Stripped ${before - bp.tiles.length} unknown tiles`)
+                coreSettings.logger.warn(`Stripped ${before - bp.tiles.length} unknown tiles`)
             }
         }
     }
@@ -202,12 +202,15 @@ function decode(str: string): Promise<Blueprint | Book> {
             reject(new CorruptedBlueprintStringError(e))
         }
     }).then(data => {
-        if (coreSettings.debug) console.log(data)
+        if (coreSettings.debug) coreSettings.logger.log(data)
         loadWarnings = []
         if (!validate(data)) {
             const errors = validate.errors
             // Log validation warnings but try to load the blueprint anyway
-            console.warn('Blueprint validation warnings (loading anyway):', JSON.stringify(errors))
+            coreSettings.logger.warn(
+                'Blueprint validation warnings (loading anyway):',
+                JSON.stringify(errors)
+            )
             loadWarnings.push('Blueprint had validation warnings (loaded anyway)')
         }
         // Always strip unknown names - they crash during rendering if they reach

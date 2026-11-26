@@ -1,4 +1,5 @@
 import util from '../common/util'
+import { coreSettings } from './config'
 import {
     ArithmeticOperation,
     ComparatorString,
@@ -191,7 +192,7 @@ function getSpriteData(data: IDrawData): readonly ExtendedSpriteData[] {
 
     const entity = FD.entities[data.name]
     if (!entity) {
-        console.warn(`Entity '${data.name}' not found in FD.entities`)
+        coreSettings.logger.warn(`Entity '${data.name}' not found in FD.entities`)
         const failedGenerator = () => SPRITE_GENERATION_FAILED as any
         generatorCache.set(data.name, failedGenerator)
         return SPRITE_GENERATION_FAILED as any
@@ -205,7 +206,10 @@ function getSpriteData(data: IDrawData): readonly ExtendedSpriteData[] {
                 ...generateConnection(entity, data),
             ]
         } catch (err) {
-            console.warn(`Error generating sprites for '${data.name}' (type: ${entity.type}):`, err)
+            coreSettings.logger.warn(
+                `Error generating sprites for '${data.name}' (type: ${entity.type}):`,
+                err
+            )
             return SPRITE_GENERATION_FAILED as any
         }
     }
@@ -932,7 +936,9 @@ function generateGraphics(e: EntityWithOwnerPrototype): (data: IDrawData) => rea
         case 'temporary-container':
             return draw_simple_entity(e)
         default:
-            console.warn(`Missing draw function for: '${e.type}' - rendering with fallback`)
+            coreSettings.logger.warn(
+                `Missing draw function for: '${e.type}' - rendering with fallback`
+            )
             return draw_simple_entity(e)
     }
 }

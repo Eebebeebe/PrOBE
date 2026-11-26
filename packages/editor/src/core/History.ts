@@ -1,4 +1,5 @@
 import util from '../common/util'
+import { coreSettings } from './config'
 
 /** Private enumaration to determine the value (new value or old value) should be applied during action */
 enum HistoryValue {
@@ -125,9 +126,9 @@ class Transaction {
 
     /** Logs all actions */
     public log(): void {
-        console.log(`[DO] ${this.text}:`)
+        coreSettings.logger.log(`[DO] ${this.text}:`)
         this.actions.forEach((a, i) =>
-            console.log('\t', i, a.text, ' - ', a.oldValue, ' -> ', a.newValue)
+            coreSettings.logger.log('\t', i, a.text, ' - ', a.oldValue, ' -> ', a.newValue)
         )
     }
 
@@ -269,7 +270,7 @@ export class History {
         this.historyIndex -= 1
 
         if (this.logging) {
-            console.log(`[UNDO] ${historyEntry.text}`)
+            coreSettings.logger.log(`[UNDO] ${historyEntry.text}`)
         }
 
         return true
@@ -286,7 +287,7 @@ export class History {
         this.historyIndex += 1
 
         if (this.logging) {
-            console.log(`[REDO] ${historyEntry.text}`)
+            coreSettings.logger.log(`[REDO] ${historyEntry.text}`)
         }
 
         return true
@@ -338,7 +339,7 @@ export class History {
             this.transactionHistory.push(this.openTransaction)
             if (this.logging) {
                 if (this.historyIndex !== 0 && this.historyIndex % 20 === 0) {
-                    console.clear()
+                    coreSettings.logger.clear()
                 }
                 this.openTransaction.log()
             }
