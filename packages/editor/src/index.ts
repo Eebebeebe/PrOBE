@@ -18,6 +18,7 @@ import { EntityInfoPanel } from './UI/EntityInfoPanel'
 import { getSpriteData, SPRITE_GENERATION_FAILED } from './core/spriteDataBuilder'
 
 export * from './core/bpString'
+export * from './sources'
 // OverlayContainer is exported for tests/overlay-container.spec.ts, which tallies
 // what createEntityInfo draws per entity. EntitySprite, getSpriteData and
 // SPRITE_GENERATION_FAILED are exported for tests/sprite-data.spec.ts, which
