@@ -280,6 +280,27 @@ export function getModule(name: string): ModulePrototype {
     settling on undefined - which is what the fields themselves are - costs
     nothing and removes the coercion the split would otherwise need at each arm.
 */
+/*
+    typed-factorio 3.36 describes the 2.0 API, which has no circuit fields on the
+    types that gained them in 2.1 (boiler, pipe, pipe-to-ground, heat-pipe, lab,
+    land-mine), and types container connectors as a single definition where 2.1
+    writes a one-entry list. This is the shape the arms below actually read.
+*/
+type WithCircuit = EntityWithOwnerPrototype & {
+    circuit_connector?: CircuitConnectorDefinition | readonly CircuitConnectorDefinition[]
+    circuit_wire_max_distance?: number
+}
+
+/** One connector from a field that is either a single definition or a list indexed by `index`. */
+function connectorAt(
+    cc: CircuitConnectorDefinition | readonly CircuitConnectorDefinition[] | undefined,
+    index: number
+): CircuitConnectorDefinition | undefined {
+    if (cc === undefined) return undefined
+    if (!Array.isArray(cc)) return cc as CircuitConnectorDefinition
+    return cc.length === 1 ? cc[0] : cc[index]
+}
+
 export function getCircuitConnector(
     e: EntityWithOwnerPrototype,
     dir: number,
@@ -303,7 +324,13 @@ export function getCircuitConnector(
         case 'reactor':
         case 'roboport':
         case 'space-platform-hub':
+        case 'lab':
+        case 'land-mine':
         case 'wall': {
+            /*
+                One connector for every direction. Containers carry it as a
+                one-entry list since 2.1; lab and land-mine gained it in 2.1.
+            */
             const e_resolved = e as
                 | AccumulatorPrototype
                 | AgriculturalTowerPrototype
@@ -319,8 +346,12 @@ export function getCircuitConnector(
                 | RoboportPrototype
                 | SpacePlatformHubPrototype
                 | WallPrototype
-            return e_resolved.circuit_connector
+            return connectorAt((e_resolved as WithCircuit).circuit_connector, 0)
         }
+        /* Gained one connector per facing (N, E, S, W) in 2.1; heat-exchanger is type boiler. */
+        case 'boiler':
+        case 'pipe-to-ground':
+            return connectorAt((e as WithCircuit).circuit_connector, dir / 4)
         /*
             `splitter` is in this arm because a splitter takes circuit wires in
             2.0 and all four in data.json carry a four-entry circuit_connector
@@ -614,6 +645,15 @@ export function getMaxWireDistance(e: EntityWithOwnerPrototype): number {
                 | WallPrototype
             return e_resolved.circuit_wire_max_distance || 0
         }
+        // Gained circuit wires in 2.1 (typed-factorio still describes 2.0).
+        case 'boiler':
+        case 'pipe':
+        case 'infinity-pipe':
+        case 'pipe-to-ground':
+        case 'heat-pipe':
+        case 'lab':
+        case 'land-mine':
+            return (e as WithCircuit).circuit_wire_max_distance || 0
         default:
             return 0
     }

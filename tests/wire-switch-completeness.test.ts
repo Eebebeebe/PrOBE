@@ -200,14 +200,15 @@ describe('the default arms still answer nothing', () => {
     /*
         The control, and it has to be able to fail while everything above passes.
         Every assertion here is of the form "the switch answered something", so a
-        `default:` that returned a connector and a 9 would satisfy the lot. A pipe
-        is in neither switch and takes no circuit wire; it is what answering
-        indiscriminately would look like.
+        `default:` that returned a connector and a 9 would satisfy the lot. A
+        beacon is in neither switch and takes no circuit wire, in 2.0 and in 2.1;
+        it is what answering indiscriminately would look like. (This used to be
+        a pipe, until Factorio 2.1 gave pipes circuit wires.)
     */
     it('for an entity in neither switch', () => {
-        const pipe = entities['pipe']
+        const beacon = entities['beacon']
 
-        expect(isGivenAConnector(pipe)).toBe(false)
-        expect(getMaxWireDistance(pipe)).toBe(0)
+        expect(isGivenAConnector(beacon)).toBe(false)
+        expect(getMaxWireDistance(beacon)).toBe(0)
     })
 })
