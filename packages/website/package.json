@@ -1,7 +1,8 @@
 {
-    "name": "@fbe/website",
+    "name": "@probe/website",
     "version": "1.0.0",
     "private": true,
+    "license": "MIT",
     "scripts": {
         "start": "vp dev",
         "build": "vp build",
@@ -9,7 +10,7 @@
         "preview": "vp preview"
     },
     "dependencies": {
-        "@fbe/editor": "*",
+        "@probe/editor": "*",
         "dat.gui": "^0.7.9",
         "file-saver": "^2.0.5",
         "pixi.js": "^8.19.0"

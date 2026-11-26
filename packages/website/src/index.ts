@@ -21,7 +21,7 @@ import EDITOR, {
     EntityInfoPanel,
     getSpriteData,
     SPRITE_GENERATION_FAILED,
-} from '@fbe/editor'
+} from '@probe/editor'
 import { initToasts } from './toasts'
 import { initSettingsPane } from './settingsPane'
 import { storedJson } from './storage'
@@ -84,7 +84,7 @@ const loadingScreen = {
 }
 
 console.log(
-    '\n%cLooking for the source?\nhttps://github.com/FactoryGameFan/factorio-blueprint-editor\n',
+    '\n%cLooking for the source?\nhttps://github.com/Eebebeebe/PrOBE\n',
     'color: #1f79aa; font-weight: bold'
 )
 

@@ -1,18 +1,19 @@
 {
-    "name": "factorio-blueprint-editor",
+    "name": "probe",
     "private": true,
+    "license": "MIT",
     "workspaces": [
         "packages/editor",
         "packages/website"
     ],
     "scripts": {
         "localpreview": "node scripts/localpreview.mjs",
-        "start:website": "npm --workspace=@fbe/website run start",
-        "preview:website": "npm --workspace=@fbe/website run preview",
+        "start:website": "npm --workspace=@probe/website run start",
+        "preview:website": "npm --workspace=@probe/website run preview",
         "start:exporter": "cd ./packages/exporter && cargo run --release",
-        "build:website": "npm --workspace=@fbe/website run build",
+        "build:website": "npm --workspace=@probe/website run build",
         "type-check:gate": "node scripts/type-check-gate.mjs",
-        "test:unit": "npm --workspace=@fbe/editor run test:unit",
+        "test:unit": "npm --workspace=@probe/editor run test:unit",
         "lint": "vp lint .",
         "lint:fix": "vp lint . --fix",
         "format": "vp fmt . --check",

@@ -30,7 +30,7 @@
         "strict": true,
 
         "paths": {
-            "@fbe/*": ["./packages/*/src/index.ts"]
+            "@probe/*": ["./packages/*/src/index.ts"]
         },
 
         // "node" is for the Playwright specs, their helpers and playwright.config.ts,

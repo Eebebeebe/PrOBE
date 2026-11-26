@@ -1,5 +1,5 @@
 import { GUI } from 'dat.gui'
-import EDITOR, { Blueprint, Book, GridPattern, Editor, FD, localisedName } from '@fbe/editor'
+import EDITOR, { Blueprint, Book, GridPattern, Editor, FD, localisedName } from '@probe/editor'
 import { storedJson } from './storage'
 
 GUI.TEXT_CLOSED = 'Close Settings'
