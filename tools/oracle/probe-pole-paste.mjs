@@ -74,7 +74,12 @@ if (!DATA_DIR) {
 const POLE = 'medium-electric-pole'
 const COPPER = 5 // defines.wire_connector_id.pole_copper
 const encode = obj => `0${deflateSync(Buffer.from(JSON.stringify(obj), 'utf8')).toString('base64')}`
-const bp = (poles, wires = []) =>
+const bp = (poles, wires = []) => ({
+    poles,
+    wires,
+    string: encodeBp(poles, wires),
+})
+const encodeBp = (poles, wires) =>
     encode({
         blueprint: {
             item: 'blueprint',
@@ -218,7 +223,7 @@ const luaCases = CASES.map(
       id = ${JSON.stringify(c.id)},
       origin = {${i * 200}, 0},
       existing = {${(c.existing ?? []).map(([x, y]) => `{${x}, ${y}}`).join(', ')}},
-      bp = ${c.bp ? JSON.stringify(c.bp) : 'nil'},
+      bp = ${c.bp ? JSON.stringify(c.bp.string) : 'nil'},
       at = ${c.at ? `{${c.at[0]}, ${c.at[1]}}` : 'nil'},
       create = ${c.create ? `{${c.create[0]}, ${c.create[1]}}` : 'nil'},
       reverse = ${c.reverse ? 'true' : 'false'},
@@ -425,6 +430,7 @@ if (WRITE_FIXTURE) {
                 cases: CASES.map(c => ({
                     id: c.id,
                     existing: c.existing,
+                    blueprint: c.bp ? { poles: c.bp.poles, wires: c.bp.wires } : null,
                     at: c.at ?? null,
                     create: c.create ?? null,
                     reverse: !!c.reverse,

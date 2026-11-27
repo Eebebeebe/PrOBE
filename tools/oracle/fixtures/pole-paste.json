@@ -10,6 +10,10 @@
         {
             "id": "A",
             "existing": [[0, 0]],
+            "blueprint": {
+                "poles": [[0, 0]],
+                "wires": []
+            },
             "at": [5, 0],
             "create": null,
             "reverse": false,
@@ -19,6 +23,13 @@
         {
             "id": "B",
             "existing": [[0, 0]],
+            "blueprint": {
+                "poles": [
+                    [0, 0],
+                    [5, 0]
+                ],
+                "wires": [[1, 2]]
+            },
             "at": [5, 0],
             "create": null,
             "reverse": false,
@@ -28,6 +39,13 @@
         {
             "id": "C",
             "existing": [],
+            "blueprint": {
+                "poles": [
+                    [0, 0],
+                    [5, 0]
+                ],
+                "wires": []
+            },
             "at": [0, 0],
             "create": null,
             "reverse": false,
@@ -37,6 +55,13 @@
         {
             "id": "C2",
             "existing": [],
+            "blueprint": {
+                "poles": [
+                    [0, 0],
+                    [5, 0]
+                ],
+                "wires": []
+            },
             "at": [0, 0],
             "create": null,
             "reverse": true,
@@ -46,6 +71,10 @@
         {
             "id": "D",
             "existing": [[0, 0]],
+            "blueprint": {
+                "poles": [[0, 0]],
+                "wires": []
+            },
             "at": [20, 0],
             "create": null,
             "reverse": false,
@@ -62,6 +91,10 @@
                 [4, 4],
                 [-4, -4]
             ],
+            "blueprint": {
+                "poles": [[0, 0]],
+                "wires": []
+            },
             "at": [0, 0],
             "create": null,
             "reverse": false,
@@ -71,6 +104,13 @@
         {
             "id": "F",
             "existing": [],
+            "blueprint": {
+                "poles": [
+                    [0, 0],
+                    [12, 0]
+                ],
+                "wires": [[1, 2]]
+            },
             "at": [0, 0],
             "create": null,
             "reverse": false,
@@ -89,6 +129,10 @@
                 [4, -4],
                 [-4, 4]
             ],
+            "blueprint": {
+                "poles": [[0, 0]],
+                "wires": []
+            },
             "at": [0, 0],
             "create": null,
             "reverse": false,
@@ -105,6 +149,10 @@
                 [5, 6],
                 [-5, 6]
             ],
+            "blueprint": {
+                "poles": [[0, 0]],
+                "wires": []
+            },
             "at": [3, 0],
             "create": null,
             "reverse": false,
@@ -114,6 +162,7 @@
         {
             "id": "G",
             "existing": [[0, 0]],
+            "blueprint": null,
             "at": null,
             "create": [5, 0],
             "reverse": false,
