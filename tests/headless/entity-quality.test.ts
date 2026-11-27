@@ -51,17 +51,22 @@ describe('Entity quality', () => {
         expect(e.quality).toBe('normal')
     })
 
-    it('reads the quality of a real legendary entity', async () => {
-        const raw = readFileSync('test-blueprints/EARN/pocket-base-space-age-v22.1.2.txt', 'utf8')
-        const loaded = await decode(raw.replace(/\s/g, ''))
-        const bp = loaded instanceof Book ? loaded.selectBlueprint(0) : loaded
-        const qualities = new Set(bp.entities.valuesArray().map(e => e.quality))
-        expect(qualities.has('normal')).toBe(true)
-        expect(
-            [...qualities].every(q =>
-                ['normal', 'uncommon', 'rare', 'epic', 'legendary'].includes(q)
-            )
-        ).toBe(true)
+    it('reads the quality of real legendary entities', async () => {
+        // 443 entities, 61 of them legendary, exported by the game.
+        const raw = readFileSync('test-blueprints/JEPAKAZOL/space-platform-factory.txt', 'utf8')
+        const book = await decode(raw.replace(/\s/g, ''))
+        if (!(book instanceof Book)) throw new Error('expected a book')
+        const path = book.findByLabel('Legendary Space Parts')
+        if (!path) throw new Error('blueprint not found')
+        const counts: Record<string, number> = {}
+        for (const e of book.getBlueprint(path).entities.values()) {
+            counts[e.quality] = (counts[e.quality] ?? 0) + 1
+        }
+        expect(counts.legendary).toBe(61)
+        expect(Object.keys(counts).sort((a, b) => a.localeCompare(b))).toEqual([
+            'legendary',
+            'normal',
+        ])
     })
 })
 
