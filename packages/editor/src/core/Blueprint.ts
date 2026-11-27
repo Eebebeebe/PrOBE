@@ -24,6 +24,7 @@ import { History } from './History'
 import { Tile } from './Tile'
 import { need } from './need'
 import { getFactorioVersion } from './factorioVersion'
+import { checkTextLength, TEXT_LIMITS } from './textLimits'
 import { coreSettings } from './config'
 
 export interface IOilOutpostSettings extends Record<string, string | boolean | number> {
@@ -124,7 +125,7 @@ const MODELLED_FIELDS = new Set([
 
 class Blueprint extends EventEmitter<BlueprintEvents> {
     /** The label as loaded or set; undefined for an unlabelled blueprint. */
-    private label?: string
+    private m_label?: string
     /*
         Fields the editor does not model - `parameters` of parametrised
         blueprints, `stock_connections` of trains, anything a newer game version
@@ -141,7 +142,7 @@ class Blueprint extends EventEmitter<BlueprintEvents> {
     public readonly history = new History()
 
     // unused blueprint properties
-    private readonly description?: string
+    private m_description?: string
     /*
         Boxed, unlike its neighbours, because it is the one of them that changes:
         `setSchedule` rewrites it when a locomotive is pasted onto (issue #115),
@@ -166,7 +167,7 @@ class Blueprint extends EventEmitter<BlueprintEvents> {
 
         if (data) {
             if (data.label) {
-                this.label = data.label
+                this.m_label = data.label
             }
 
             for (const [key, value] of Object.entries(data)) {
@@ -422,7 +423,7 @@ class Blueprint extends EventEmitter<BlueprintEvents> {
                 this.history.commitTransaction()
             }
 
-            this.description = data.description
+            this.m_description = data.description
             this.scheduleStore.schedules = data.schedules
             this.absolute_snapping = data['absolute-snapping']
             this.snap_to_grid = data['snap-to-grid']
@@ -929,11 +930,44 @@ class Blueprint extends EventEmitter<BlueprintEvents> {
 
     /** The blueprint's label, or 'Blueprint' for display when it has none. */
     public get name(): string {
-        return this.label ?? 'Blueprint'
+        return this.m_label ?? 'Blueprint'
     }
 
     public set name(label: string) {
         this.label = label
+    }
+
+    /** The label as stored; undefined when the blueprint has none. */
+    public get label(): string | undefined {
+        return this.m_label
+    }
+
+    /** Sets or (with undefined) clears the label. Throws TextTooLongError past 200 bytes. */
+    public set label(label: string | undefined) {
+        if (label !== undefined) checkTextLength('Blueprint label', label, TEXT_LIMITS.label)
+        this.m_label = label
+    }
+
+    /** The description; undefined when the blueprint has none. */
+    public get description(): string | undefined {
+        return this.m_description
+    }
+
+    /** Sets or (with undefined) clears the description. Throws TextTooLongError past 500 bytes. */
+    public set description(description: string | undefined) {
+        if (description !== undefined) {
+            checkTextLength('Blueprint description', description, TEXT_LIMITS.description)
+        }
+        this.m_description = description
+    }
+
+    /**
+     * An independent copy: its own entities, wires, tiles and history. Built
+     * from a deep copy of serialize(), because the constructor consumes the
+     * data it is handed (it deletes the wire lists it reads, for one).
+     */
+    public clone(): Blueprint {
+        return new Blueprint(JSON.parse(JSON.stringify(this.serialize())) as IBlueprint)
     }
 
     public serialize(): IBlueprint {
@@ -981,8 +1015,8 @@ class Blueprint extends EventEmitter<BlueprintEvents> {
             tiles: this.tiles.isEmpty() ? undefined : tileInfo,
             item: 'blueprint',
             version: getFactorioVersion(),
-            label: this.label,
-            description: this.description,
+            label: this.m_label,
+            description: this.m_description,
             schedules: this.scheduleStore.schedules,
             'absolute-snapping': this.absolute_snapping,
             'snap-to-grid': this.snap_to_grid,

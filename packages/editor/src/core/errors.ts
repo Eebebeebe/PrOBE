@@ -10,3 +10,20 @@ export class IllegalFlipError extends Error {
         this.name = 'IllegalFlipError'
     }
 }
+
+/**
+ * Thrown when text is set that the game would cut short. Factorio silently
+ * truncates labels, descriptions and similar fields at a byte limit
+ * (core/textLimits.ts), so writing longer text would lose its end without
+ * anyone noticing; this says so at the moment it is set instead.
+ */
+export class TextTooLongError extends Error {
+    public constructor(
+        public readonly field: string,
+        public readonly bytes: number,
+        public readonly limit: number
+    ) {
+        super(`${field} is ${bytes} bytes (UTF-8); Factorio keeps only ${limit}`)
+        this.name = 'TextTooLongError'
+    }
+}
