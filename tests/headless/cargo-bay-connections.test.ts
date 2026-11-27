@@ -31,6 +31,9 @@ name('TR-in', [25, 26])
 name('BL-in', [31, 32])
 name('BR-in', [29, 30])
 
+/** One sort order for actual and expected lists alike. */
+const byText = (a: string, b: string): number => a.localeCompare(b)
+
 /** Each connection piece drawn for a blueprint, as "<piece>@<tile x>,<tile y>". */
 function pieces(entities: { name: string; x: number; y: number }[]): string[] {
     const bp = new Blueprint({
@@ -59,7 +62,7 @@ function pieces(entities: { name: string; x: number; y: number }[]): string[] {
             modules: [],
         } satisfies IDrawData
         for (const s of getSpriteData(data)) {
-            if (!/connections-0\.png$/.test(s.filename ?? '')) continue
+            if (!(s.filename ?? '').endsWith('connections-0.png')) continue
             const frame = ((s.y ?? 0) / 270) * 8 + (s.x ?? 0) / 222 + 1
             // The tile the piece was shifted to, relative to the blueprint.
             const [sx, sy] = Array.isArray(s.shift) ? s.shift : [0, 0]
@@ -68,10 +71,10 @@ function pieces(entities: { name: string; x: number; y: number }[]): string[] {
             out.push(`${PIECE[frame] ?? `frame${frame}`}@${tx},${ty}:${entity.name}`)
         }
     }
-    return out.sort()
+    return out.sort(byText)
 }
 
-const kinds = (list: string[]) => list.map(p => p.split('@')[0]).sort()
+const kinds = (list: string[]) => list.map(p => p.split('@')[0]).sort(byText)
 
 describe('cargo bay connection walls (2.1 tileset)', () => {
     beforeAll(loadTestData)
@@ -92,7 +95,7 @@ describe('cargo bay connection walls (2.1 tileset)', () => {
                 'left',
                 'right',
                 'right',
-            ].sort()
+            ].sort(byText)
         )
     })
 
@@ -104,12 +107,15 @@ describe('cargo bay connection walls (2.1 tileset)', () => {
         // An 8x4 outline: 4 corners, 6 top, 6 bottom, 2 left, 2 right.
         expect(kinds(got)).toEqual(
             [
-                ...['BL-out', 'BR-out', 'TL-out', 'TR-out'],
+                'BL-out',
+                'BR-out',
+                'TL-out',
+                'TR-out',
                 ...Array(6).fill('top'),
                 ...Array(6).fill('bottom'),
                 ...Array(2).fill('left'),
                 ...Array(2).fill('right'),
-            ].sort()
+            ].sort(byText)
         )
     })
 
@@ -122,7 +128,7 @@ describe('cargo bay connection walls (2.1 tileset)', () => {
         expect(kinds(got).filter(k => k.endsWith('-in'))).toEqual(['BR-in'])
         // An L has five convex corners and one concave one.
         expect(kinds(got).filter(k => k.endsWith('-out'))).toEqual(
-            ['BL-out', 'BR-out', 'BR-out', 'TL-out', 'TR-out'].sort()
+            ['BL-out', 'BR-out', 'BR-out', 'TL-out', 'TR-out'].sort(byText)
         )
     })
 

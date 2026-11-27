@@ -735,8 +735,10 @@ export class PositionGrid {
         // no reach to search along; the loop below already expressed this by not running
         if (maxDistance === undefined) return undefined
 
-        const horizontal = searchDirection % 4 !== 0
-        const sign = searchDirection === 0 || searchDirection === 6 ? -1 : 1
+        // Directions are 16ths (north 0, east 4, south 8, west 12). This used the
+        // old 8-direction rules, which sent east and west searches south.
+        const horizontal = searchDirection % 8 !== 0
+        const sign = searchDirection === 0 || searchDirection === 12 ? -1 : 1
 
         for (let i = 1; i <= maxDistance; i++) {
             const X = Math.floor(position.x) + (horizontal ? i * sign : 0)
