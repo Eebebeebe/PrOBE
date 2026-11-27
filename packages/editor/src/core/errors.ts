@@ -87,3 +87,44 @@ export class BookPathError extends Error {
         this.name = 'BookPathError'
     }
 }
+
+/** One entity or tile a paste could not place, and what is in its way. */
+export interface PasteConflict {
+    /** Entity or tile name from the pasted blueprint. */
+    name: string
+    /** Where it would have gone in the destination. */
+    position: { x: number; y: number }
+    /** What is there: "<name> at (x, y)", or the rule that refuses it. */
+    blockedBy: string[]
+}
+
+/**
+ * Thrown by a paste that collides with what is already there (the default,
+ * onConflict: 'error'). Nothing was placed. The message names each pasted
+ * entity that does not fit and what is in its way, as the game's own
+ * "can't build here" does.
+ */
+export class CollisionError extends Error {
+    public constructor(public readonly conflicts: readonly PasteConflict[]) {
+        const shown = conflicts
+            .slice(0, 3)
+            .map(
+                c =>
+                    `${c.name} at (${c.position.x}, ${c.position.y}): ${c.blockedBy.join(', ')} in the way`
+            )
+        const more = conflicts.length > 3 ? `, and ${conflicts.length - 3} more` : ''
+        super(`Cannot paste ${shown.join('; ')}${more}`)
+        this.name = 'CollisionError'
+    }
+}
+
+/** Thrown for a paste offset that would take entities off their grid. */
+export class ParityError extends Error {
+    public constructor(
+        public readonly offset: { x: number; y: number },
+        reason: string
+    ) {
+        super(`Cannot paste at offset (${offset.x}, ${offset.y}): ${reason}`)
+        this.name = 'ParityError'
+    }
+}

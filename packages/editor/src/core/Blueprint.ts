@@ -1102,7 +1102,7 @@ const RAIL_GRID_TYPES = new Set([
  * a train stop, or a prototype declaring `build_grid_size: 2` (the landing
  * pad) - so whole-blueprint moves must be even; 1 otherwise.
  */
-function railGridStep(names: Iterable<string>): 1 | 2 {
+export function railGridStep(names: Iterable<string>): 1 | 2 {
     for (const name of names) {
         const e = FD.entities[name] as { type: string; build_grid_size?: number } | undefined
         if (e && (RAIL_GRID_TYPES.has(e.type) || e.build_grid_size === 2)) return 2

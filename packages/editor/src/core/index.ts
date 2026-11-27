@@ -14,6 +14,9 @@
 export { Blueprint, oilOutpostSettings, getFactorioVersion } from './Blueprint'
 export type { BlueprintBounds, BlueprintEvents, IOilOutpostSettings } from './Blueprint'
 export { Book } from './Book'
+export { pasteInto } from './paste'
+export type { OnConflict, PasteOptions, PasteResult } from './paste'
+export type { PasteConflict } from './errors'
 export type { AddOptions, BookEntryInfo, BookEntryKind, FindOptions } from './Book'
 export { Entity } from './Entity'
 export { Tile } from './Tile'
@@ -31,10 +34,12 @@ export { coreSettings, CoreSettings } from './config'
 export {
     AmbiguousLabelError,
     BookPathError,
+    CollisionError,
     IllegalFlipError,
     IncompatibleUpgradeError,
     InvalidQualityError,
     InvalidRecipeError,
+    ParityError,
     TextTooLongError,
 } from './errors'
 export { TEXT_LIMITS, utf8Length } from './textLimits'

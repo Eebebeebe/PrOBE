@@ -198,7 +198,7 @@ export class WireConnections extends EventEmitter<WireConnectionsEvents> {
         }
     }
 
-    private static toPoleConnection(entityNumber1: number, entityNumber2: number): IConnection {
+    public static toPoleConnection(entityNumber1: number, entityNumber2: number): IConnection {
         return {
             color: 'copper',
             cps: [
