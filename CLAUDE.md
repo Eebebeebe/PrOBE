@@ -61,8 +61,8 @@ Run Playwright from the repo root and never with sudo.
   globals, `containers/` or `UI/`. Three guards keep it so: `tests/headless/core-imports.test.ts`,
   `packages/editor/tsconfig.core.json` (no DOM types) and `tests/headless/no-pixi.test.ts`.
   `tests/headless/` also mirrors the corpus fixed points in Node.
-- The editor still writes blueprint version 2.0.45 and `data.json` is from 2.0.x; PrOBE targets
-  the newest game version (2.1.25 measured here). See `docs/PLAN.md`.
+- `data.json` is exported from Factorio 2.1.25 and the editor writes blueprint version 2.1.25
+  (`core/factorioVersion.ts`). Older blueprints are migrated on load (`core/nameMigrations.ts`).
 
 ## Conventions
 

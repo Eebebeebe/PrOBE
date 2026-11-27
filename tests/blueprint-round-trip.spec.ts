@@ -213,6 +213,11 @@ test('every test blueprint survives the decode/serialize round trip unchanged', 
  * molten-iron / molten-copper, as the game itself migrates them. Measured: the
  * 2.1 data.json without the renames leaves the hash at 12290815; every count
  * and both position checksums held.
+ *
+ * And from -1164788001 to 662686658 when the editor started stamping saved
+ * blueprints 2.1.25 instead of 2.0.45, the game version its data now comes
+ * from. Only the `version` number changed; every count and both position
+ * checksums held.
  */
 //
 // The values now live in tests/__fixtures__/round-trip.json (moved verbatim,

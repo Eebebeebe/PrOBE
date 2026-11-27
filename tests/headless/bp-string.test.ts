@@ -38,8 +38,9 @@ describe('the blueprint string codec in Node', () => {
         const again = await encode(await decode(BOOK))
         const before = rawJson(BOOK) as { blueprint_book: Record<string, unknown> }
         const after = rawJson(again) as { blueprint_book: Record<string, unknown> }
-        // Known difference, tracked in docs/PLAN.md: the editor stamps its own
-        // version (2.0.45) instead of keeping the game's (2.1.25).
+        // The editor stamps its own version on save, as the game does on
+        // export. Both say 2.1.25, but the game also fills the lowest 16 bits
+        // with a build number (10 here) and the editor writes 0.
         delete before.blueprint_book.version
         delete after.blueprint_book.version
         expect(after).toEqual(before)

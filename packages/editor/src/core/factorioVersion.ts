@@ -12,7 +12,7 @@
 // below 2^53, the largest whole number a JS number holds without rounding.
 // (This used to multiply by 0xffffffff, one less than 2^32, which quietly
 // wrote 2.0.45 as 2.0.43.)
-const getFactorioVersion = (main = 2, major = 0, minor = 45): number =>
+const getFactorioVersion = (main = 2, major = 1, minor = 25): number =>
     main * 2 ** 48 + major * 2 ** 32 + minor * 2 ** 16
 
 export { getFactorioVersion }
