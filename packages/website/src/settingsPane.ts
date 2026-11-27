@@ -39,7 +39,13 @@ export function initSettingsPane(
     const guiBPIndex = gui
         .add({ bpIndex: 0 }, 'bpIndex', 0, 0, 1)
         .name('BP Book Index')
-        .onFinishChange(changeBookIndex)
+        .onFinishChange((index: number) => openBookIndex(index))
+
+    // Picking an index always opens a blueprint, so the "none open" label goes.
+    const openBookIndex = (index: number): void => {
+        guiBPIndex.name('BP Book Index')
+        changeBookIndex(index)
+    }
 
     // Allow arrow keys to increment/decrement the BP Book Index input
     const bpIndexInput = guiBPIndex.domElement.querySelector('input')
@@ -57,14 +63,23 @@ export function initSettingsPane(
                 }
                 const newVal = Math.max(bounds.__min, Math.min(bounds.__max, current + delta))
                 guiBPIndex.setValue(newVal)
-                changeBookIndex(newVal)
+                openBookIndex(newVal)
             }
         })
     }
 
     const changeBook = (bpOrBook: Book | Blueprint): void => {
         if (bpOrBook instanceof Book) {
-            guiBPIndex.max(bpOrBook.lastBookIndex).setValue(bpOrBook.activeIndex)
+            /*
+                A book whose active slot holds no blueprint opens an empty view,
+                as the game puts only the book in the cursor. A number box cannot
+                say "none", so the label does, and the box sits on 0 ready to step.
+            */
+            const active = bpOrBook.activeIndex
+            guiBPIndex
+                .name(active === undefined ? 'BP Book Index (none open)' : 'BP Book Index')
+                .max(Math.max(0, bpOrBook.lastBookIndex))
+                .setValue(active ?? 0)
             guiBPIndex.domElement.style.visibility = 'visible'
         } else {
             guiBPIndex.domElement.style.visibility = 'hidden'

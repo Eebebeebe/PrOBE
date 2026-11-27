@@ -142,14 +142,12 @@ const EXPECTED_SYNTHETIC: Record<string, number[]> = {
  * show both states - [-1, 1] means some are configured and some are not, which
  * is the discrimination that would be lost if a branch started skipping.
  *
- * boiler, fast-splitter and steam-engine joined when books started reading
- * `active_index` as a slot (504a4af2). This helper loads only a book's active
- * blueprint, and EARN/power-blocks-v22-0-8.rev-1.txt names slot 5, which is
- * empty: read as an array position it used to open "Solar Block Space Filler",
- * now it opens the first blueprint, "Boiler Block". Measured: the spec passes
- * on 504a4af2^ and fails with exactly these three entries on 504a4af2 and on
- * every commit after it, before the 2.1 data too. Boiler and steam engine draw
- * the same [2] the synthetic half already pins.
+ * EARN/power-blocks-v22-0-8.rev-1.txt names active slot 5, which is empty, and
+ * this helper loads only a book's active blueprint: the editor opens nothing
+ * for it, as the game puts only the book in the cursor, so it adds nothing
+ * here. (Read as an array position, slot 5 once opened "Solar Block Space
+ * Filler"; for a while after 504a4af2 it fell back to the first blueprint and
+ * added boiler, fast-splitter and steam-engine.)
  */
 const EXPECTED_REAL: Record<string, number[]> = {
     'arithmetic-combinator': [2],
@@ -157,7 +155,6 @@ const EXPECTED_REAL: Record<string, number[]> = {
     'assembling-machine-2': [1, 3],
     'assembling-machine-3': [-1, 1, 2, 3, 4],
     biochamber: [2, 4],
-    boiler: [2],
     'buffer-chest': [1],
     'bulk-inserter': [-1, 1],
     'burner-inserter': [-1, 1],
@@ -171,7 +168,6 @@ const EXPECTED_REAL: Record<string, number[]> = {
     'electromagnetic-plant': [1, 2, 4],
     'express-splitter': [-1, 1],
     'fast-inserter': [-1, 1],
-    'fast-splitter': [-1, 1],
     foundry: [2, 4],
     'fusion-generator': [2],
     'fusion-reactor': [2],
@@ -187,7 +183,6 @@ const EXPECTED_REAL: Record<string, number[]> = {
     'rocket-silo': [1],
     splitter: [-1, 1],
     'stack-inserter': [-1, 1],
-    'steam-engine': [2],
     'steam-turbine': [2],
     'storage-chest': [1],
     'turbo-splitter': [-1, 1],

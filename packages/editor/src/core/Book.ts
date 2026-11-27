@@ -5,11 +5,18 @@ class Book {
     /*
         The blueprint currently open, absent until selectBlueprint has opened one.
         A freshly constructed Book has none, which is why saveActiveBlueprint
-        below is written as `if (this._active)` and answers 0 without it - the
-        guard predates the type saying so.
+        below is written as `if (this._active)`.
     */
     private _active: Blueprint | undefined
-    private _activeIndex: number
+    /**
+     * The flattened index of the open blueprint, or undefined when the book's
+     * active slot holds no blueprint: an empty slot, a planner, or a nested book
+     * with nothing active. Factorio then puts only the book in the cursor, so
+     * the editor opens an empty view (`_active` is then detached from the book).
+     */
+    private _activeIndex: number | undefined
+    /** The slot `active_index` names, written back unchanged until a blueprint is opened. */
+    private activeSlot: number
     private readonly blueprints: IBlueprintBookEntry[]
 
     private readonly label?: string
@@ -18,18 +25,21 @@ class Book {
 
     public constructor(data: IBlueprintBook) {
         if (data) {
-            this._activeIndex = getFlattenedActiveIndex(data.blueprints, data.active_index)
             this.blueprints = data.blueprints || []
+            this.activeSlot = data.active_index ?? 0
+            this._activeIndex = resolveActiveIndex(this.blueprints, this.activeSlot)
             this.label = data.label
             this.description = data.description
             this.icons = data.icons
         } else {
-            this._activeIndex = 0
             this.blueprints = []
+            this.activeSlot = 0
+            this._activeIndex = undefined
         }
     }
 
-    public get activeIndex(): number {
+    /** Flattened index of the open blueprint; undefined when nothing is open. */
+    public get activeIndex(): number | undefined {
         return this._activeIndex
     }
 
@@ -37,27 +47,48 @@ class Book {
         return countNestedBlueprints(this.blueprints) - 1
     }
 
+    /** Writes the open blueprint back into the book; answers the slot active_index names. */
     private saveActiveBlueprint(): number {
-        if (this._active) {
-            const res = saveBlueprint(this.blueprints, this._activeIndex, this._active.serialize())
-            // Not finding a slot used to answer undefined, which serialize() then
-            // wrote into `active_index` - a required number - and JSON.stringify
-            // dropped, producing a book with no active_index at all. 0 is what
-            // the no-active-blueprint branch below already answers.
-            return res.saved ? res.index : 0
+        if (!this._active) return this.activeSlot
+
+        if (this._activeIndex === undefined) {
+            /*
+                The empty view. Anything done in it - entities, tiles, even just
+                a name - becomes a new blueprint in the active slot; left as it
+                opened, the book is not touched at all.
+            */
+            const data = this._active.serialize()
+            if (sameIgnoringVersion(data, new Blueprint().serialize())) return this.activeSlot
+            this.activeSlot = placeNewBlueprint(this.blueprints, this.activeSlot, data)
+            this._activeIndex = resolveActiveIndex(this.blueprints, this.activeSlot)
+            return this.activeSlot
         }
-        return 0
+
+        const res = saveBlueprint(this.blueprints, this._activeIndex, this._active.serialize())
+        if (!res.saved) {
+            // The index came from this book, so it always lands on a blueprint.
+            throw new Error(`Book: no blueprint at flattened index ${this._activeIndex}`)
+        }
+        this.activeSlot = res.index
+        return res.index
     }
 
     public selectBlueprint(index?: number): Blueprint {
         this.saveActiveBlueprint()
 
         if (index !== undefined) {
-            this._activeIndex = index < 0 || index > this.lastBookIndex ? 0 : index
+            const inRange = index >= 0 && index <= this.lastBookIndex
+            // An index past the end falls back to the first blueprint, or to the
+            // empty view when the book holds none.
+            this._activeIndex = inRange ? index : this.lastBookIndex >= 0 ? 0 : undefined
         }
 
-        const blueprint = getBlueprintAtFlattenedActiveIndex(this.blueprints, this._activeIndex)
-        const bp = new Blueprint(blueprint)
+        const bp =
+            this._activeIndex === undefined
+                ? new Blueprint()
+                : new Blueprint(
+                      getBlueprintAtFlattenedActiveIndex(this.blueprints, this._activeIndex)
+                  )
         this._active = bp
         return bp
     }
@@ -79,6 +110,10 @@ class Book {
             icons: this.icons,
         }
     }
+}
+
+function sameIgnoringVersion(a: IBlueprint, b: IBlueprint): boolean {
+    return JSON.stringify({ ...a, version: 0 }) === JSON.stringify({ ...b, version: 0 })
 }
 
 /*
@@ -108,42 +143,54 @@ function countNestedBlueprints(bps: IBlueprintBookEntry[] = [], includePlanners 
     }, 0)
 }
 
-function getFlattenedActiveIndex(bps: IBlueprintBookEntry[] = [], active_index: number): number {
-    const active = positionOfSlot(bps, active_index)
-    // An empty book, or an active slot with nothing in it, opens the first blueprint.
-    if (active === -1) return 0
+/**
+ * The flattened index of the blueprint the `active_index` chain ends on, or
+ * undefined where it ends on no blueprint: an empty slot, a planner, or a
+ * nested book whose own active slot holds none.
+ */
+function resolveActiveIndex(bps: IBlueprintBookEntry[], activeSlot: number): number | undefined {
+    const position = positionOfSlot(bps, activeSlot)
+    if (position === -1) return undefined
+    const { blueprint, blueprint_book } = bps[position]
+    const before = countNestedBlueprints(bps.slice(0, position))
+    if (blueprint) return before
+    if (!blueprint_book) return undefined
+    const inner = resolveActiveIndex(
+        blueprint_book.blueprints ?? [],
+        blueprint_book.active_index ?? 0
+    )
+    return inner === undefined ? undefined : before + inner
+}
 
-    {
-        const { upgrade_planner, deconstruction_planner, blueprint_book } = bps[active]
-
-        if (
-            upgrade_planner ||
-            deconstruction_planner ||
-            (blueprint_book && countNestedBlueprints(blueprint_book.blueprints) === 0)
-        ) {
-            return 0
+/**
+ * Puts a new blueprint where the `active_index` chain ends and answers the
+ * top-level slot it went into. An empty slot takes it; a nested book passes it
+ * on to its own active slot; a slot a planner occupies stays the planner's,
+ * and the blueprint takes the lowest free slot of that book instead.
+ */
+function placeNewBlueprint(bps: IBlueprintBookEntry[], activeSlot: number, bp: IBlueprint): number {
+    const position = positionOfSlot(bps, activeSlot)
+    if (position !== -1) {
+        const book = bps[position].blueprint_book
+        if (book) {
+            book.blueprints ??= []
+            book.active_index = placeNewBlueprint(book.blueprints, book.active_index ?? 0, bp)
+            return activeSlot
         }
     }
-
-    let res = active
-
-    for (let i = 0; i < active; i++) {
-        const { upgrade_planner, deconstruction_planner, blueprint_book } = bps[i]
-
-        if (blueprint_book) {
-            res += countNestedBlueprints(blueprint_book.blueprints) - 1
-        } else if (upgrade_planner || deconstruction_planner) {
-            res -= 1
-        }
+    // Pin every entry's slot first: one without an `index` takes its array
+    // position, which the insertion below would otherwise shift.
+    bps.forEach((e, i) => (e.index = slotOf(e, i)))
+    let slot = activeSlot
+    if (position !== -1) {
+        const taken = new Set(bps.map((e, i) => slotOf(e, i)))
+        slot = 0
+        while (taken.has(slot)) slot += 1
     }
-
-    const { blueprint_book } = bps[active]
-
-    if (blueprint_book) {
-        res += getFlattenedActiveIndex(blueprint_book.blueprints, blueprint_book.active_index)
-    }
-
-    return res
+    // Kept in slot order, which is the order the flattened indices count in.
+    const at = bps.findIndex((e, i) => slotOf(e, i) > slot)
+    bps.splice(at === -1 ? bps.length : at, 0, { index: slot, blueprint: bp })
+    return slot
 }
 
 /**
