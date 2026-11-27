@@ -753,7 +753,6 @@ export function getPossibleRotations(
         case 'constant-combinator':
         case 'fusion-generator':
         case 'gate':
-        case 'generator':
         case 'inserter':
         case 'lightning-attractor':
         case 'mining-drill':
@@ -798,8 +797,10 @@ export function getPossibleRotations(
         case 'display-panel':
             return [0, 4, 8, 12]
         case 'storage-tank':
-        case 'fusion-reactor': {
-            const e_resolved = e as StorageTankPrototype | FusionReactorPrototype
+        case 'fusion-reactor':
+        case 'generator': {
+            // Steam engines and turbines declare two_direction_only from 2.1 on.
+            const e_resolved = e as { two_direction_only?: boolean }
             if (e_resolved.two_direction_only) {
                 return [0, 4]
             } else {

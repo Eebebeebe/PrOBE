@@ -3,7 +3,10 @@ import * as zlib from 'zlib'
 import type { ModulePrototype } from 'factorio:prototype'
 import { decode } from '../../packages/editor/src/core/bpString'
 import { coreSettings } from '../../packages/editor/src/core/config'
-import FD, { recipeSupportsModule } from '../../packages/editor/src/core/factorioData'
+import FD, {
+    getPossibleRotations,
+    recipeSupportsModule,
+} from '../../packages/editor/src/core/factorioData'
 import { loadTestData } from '../helpers/load-test-data'
 
 /*
@@ -74,5 +77,18 @@ describe('Factorio 2.1 data guards', () => {
         const prod = FD.items['productivity-module'] as unknown as ModulePrototype
         expect(recipeSupportsModule('iron-gear-wheel', prod)).toBe(true)
         expect(recipeSupportsModule('assembling-machine-1', prod)).toBe(false)
+    })
+
+    it('rotates steam engines and turbines two ways, as 2.1 declares', () => {
+        expect(getPossibleRotations(FD.entities['steam-engine'])).toEqual([0, 4])
+        expect(getPossibleRotations(FD.entities['steam-turbine'])).toEqual([0, 4])
+        // 2.1 also made the flamethrower turret 8-way, through its flags.
+        expect(getPossibleRotations(FD.entities['flamethrower-turret'])).toEqual([
+            0, 2, 4, 6, 8, 10, 12, 14,
+        ])
+        // Control: an ordinary 4-way entity is untouched.
+        expect(getPossibleRotations(FD.entities['assembling-machine-2'], true)).toEqual([
+            0, 4, 8, 12,
+        ])
     })
 })
