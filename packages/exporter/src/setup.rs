@@ -296,6 +296,7 @@ pub async fn extract(output_dir: &Path, base_factorio_dir: &Path) -> Result<(), 
             .unwrap(),
     );
 
+    let expected_keys = encode_keys(&file_paths)?;
     let file_paths = Arc::new(Mutex::new(file_paths));
 
     let tmp_dir = std::env::temp_dir().join("__FBE__");
@@ -314,11 +315,22 @@ pub async fn extract(output_dir: &Path, base_factorio_dir: &Path) -> Result<(), 
     }))
     .await?;
 
-    let new_metadata = {
+    let (new_metadata, unencoded) = {
         let new_metadata = new_metadata.lock().unwrap();
-        serde_json::to_vec(&*new_metadata)?
+        (
+            serde_json::to_vec(&*new_metadata)?,
+            missing_from(&expected_keys, &new_metadata),
+        )
     };
     tokio::fs::write(metadata_path, new_metadata).await?;
+    if !unencoded.is_empty() {
+        return Err(format!(
+            "{} sprite(s) failed to encode, so their .basis is missing or stale:\n{}",
+            unencoded.len(),
+            unencoded.join("\n")
+        )
+        .into());
+    }
 
     progress.finish();
 
@@ -450,6 +462,7 @@ pub async fn extract_local(output_dir: &Path, factorio_dir: &Path) -> Result<(),
             .unwrap(),
     );
 
+    let expected_keys = encode_keys(&file_paths)?;
     let file_paths = Arc::new(Mutex::new(file_paths));
     let tmp_dir = std::env::temp_dir().join("__FBE__");
     tokio::fs::create_dir_all(&tmp_dir).await?;
@@ -467,11 +480,22 @@ pub async fn extract_local(output_dir: &Path, factorio_dir: &Path) -> Result<(),
     }))
     .await?;
 
-    let new_metadata = {
+    let (new_metadata, unencoded) = {
         let new_metadata = new_metadata.lock().unwrap();
-        serde_json::to_vec(&*new_metadata)?
+        (
+            serde_json::to_vec(&*new_metadata)?,
+            missing_from(&expected_keys, &new_metadata),
+        )
     };
     tokio::fs::write(metadata_path, new_metadata).await?;
+    if !unencoded.is_empty() {
+        return Err(format!(
+            "{} sprite(s) failed to encode, so their .basis is missing or stale:\n{}",
+            unencoded.len(),
+            unencoded.join("\n")
+        )
+        .into());
+    }
 
     progress.finish();
     tokio::fs::remove_dir_all(&tmp_dir).await?;
@@ -528,6 +552,32 @@ fn basisu_executable() -> PathBuf {
     }
 }
 
+/// The metadata keys of every image queued for encoding.
+fn encode_keys(file_paths: &[(PathBuf, PathBuf)]) -> Result<Vec<String>, Box<dyn Error>> {
+    file_paths
+        .iter()
+        .map(|(in_path, _)| {
+            in_path
+                .to_str()
+                .map(str::to_string)
+                .ok_or_else(|| "PathBuf to &str failed".into())
+        })
+        .collect()
+}
+
+/// The expected keys that ended up without a metadata entry. An image only
+/// gets one when basisu succeeded (or it was skipped as unchanged), so these
+/// are exactly the images that failed.
+fn missing_from(expected: &[String], metadata: &HashMap<String, (u64, u64)>) -> Vec<String> {
+    let mut missing: Vec<String> = expected
+        .iter()
+        .filter(|k| !metadata.contains_key(*k))
+        .cloned()
+        .collect();
+    missing.sort();
+    missing
+}
+
 async fn compress_next_img(
     file_paths: Arc<Mutex<Vec<(PathBuf, PathBuf)>>>,
     tmp_dir: &Path,
@@ -540,7 +590,8 @@ async fn compress_next_img(
         let (len, mtime) = get_len_and_mtime(&in_path).await?;
         let key = in_path.to_str().ok_or("PathBuf to &str failed")?;
 
-        if old_metadata.get(key) == Some(&(len, mtime)) {
+        // Unchanged input is only a reason to skip while its output still exists.
+        if old_metadata.get(key) == Some(&(len, mtime)) && tokio::fs::try_exists(&out_path).await? {
             new_metadata
                 .lock()
                 .unwrap()
@@ -695,6 +746,24 @@ async fn download(
 
 #[cfg(test)]
 mod tests {
+    #[test]
+    fn missing_from_lists_only_images_without_metadata() {
+        let expected = vec![
+            "b.png".to_string(),
+            "a.png".to_string(),
+            "c.png".to_string(),
+        ];
+        let mut metadata = std::collections::HashMap::new();
+        metadata.insert("c.png".to_string(), (1, 2));
+        assert_eq!(
+            super::missing_from(&expected, &metadata),
+            vec!["a.png", "b.png"]
+        );
+        metadata.insert("a.png".to_string(), (1, 2));
+        metadata.insert("b.png".to_string(), (1, 2));
+        assert!(super::missing_from(&expected, &metadata).is_empty());
+    }
+
     use super::*;
 
     #[test]
