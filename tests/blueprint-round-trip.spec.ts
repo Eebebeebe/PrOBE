@@ -218,6 +218,14 @@ test('every test blueprint survives the decode/serialize round trip unchanged', 
  * blueprints 2.1.25 instead of 2.0.45, the game version its data now comes
  * from. Only the `version` number changed; every count and both position
  * checksums held.
+ *
+ * And from 662686658 to 2091815027, with both position checksums, when loading
+ * and saving stopped moving entities relative to each other or off their grid
+ * (tests/headless/blueprint-fidelity.test.ts, "one shared shift"): off-grid
+ * entities - land mines, locomotives, wagons - keep their exact positions
+ * instead of being snapped to tiles, and blueprints holding anything on the
+ * rail grid move by even whole tiles only. Before, 121 corpus blueprints came
+ * back with their layout changed. Every count held.
  */
 //
 // The values now live in tests/__fixtures__/round-trip.json (moved verbatim,

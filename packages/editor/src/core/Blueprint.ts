@@ -218,19 +218,18 @@ class Blueprint extends EventEmitter<BlueprintEvents> {
                 this.entities = new OurMap(
                     data.entities.map(e => {
                         const direction = (e.direction || 0) * dirMult
-                        let position = util.sumprod(e.position, offset)
-                        // Approximate position of placeable_off_grid entities (i.e. landmines)
-                        if (FD.entities[e.name]?.flags?.includes('placeable-off-grid')) {
-                            const e_size = getEntitySize(FD.entities[e.name])
-                            const size = util.rotatePointBasedOnDir(
-                                [e_size.x / 2, e_size.y / 2],
-                                direction
-                            )
-                            // Take the offset into account for accurate positioning
-                            const x = Math.round(e.position.x + offset.x - size.x) + size.x
-                            const y = Math.round(e.position.y + offset.y - size.y) + size.y
-                            position = { x, y }
-                        }
+                        /*
+                            Off-grid entities (land mines, locomotives, wagons,
+                            cargo pods) keep their exact position. They used to be
+                            snapped to the tile grid here, and the snapped position
+                            was what serialize() wrote back: land mines moved by up
+                            to half a tile, and wagons - whose facing is an
+                            `orientation`, not the `direction` the snap rotated
+                            by - by half a tile off their rails. PositionGrid
+                            already rounds every footprint to whole cells, so the
+                            grid itself needs no snapped position.
+                        */
+                        const position = util.sumprod(e.position, offset)
                         if (pre_2_0 && e.name === 'straight-rail') {
                             e.name = 'legacy-straight-rail'
                         }
@@ -577,8 +576,14 @@ class Blueprint extends EventEmitter<BlueprintEvents> {
         return this.entities.isEmpty() && this.tiles.isEmpty()
     }
 
+    /**
+     * The centre that serialize() re-bases positions on, in whole tiles - and
+     * in even tiles while the blueprint holds anything on the 2x2 rail grid, so
+     * re-basing never moves a rail off its grid (see railGridStep).
+     */
     private getCenter(): IPoint {
         if (this.isEmpty()) return { x: 0, y: 0 }
+        const step = railGridStep(this.entities.valuesArray().map(e => e.name))
 
         const data = [
             ...this.entities
@@ -593,8 +598,8 @@ class Blueprint extends EventEmitter<BlueprintEvents> {
         const maxY = data.reduce((max, d) => Math.max(max, d.y + d.h / 2), -Infinity)
 
         return {
-            x: Math.round((minX + maxX) / 2),
-            y: Math.round((minY + maxY) / 2),
+            x: step * Math.round((minX + maxX) / 2 / step),
+            y: step * Math.round((minY + maxY) / 2 / step),
         }
     }
 
@@ -876,17 +881,12 @@ class Blueprint extends EventEmitter<BlueprintEvents> {
         }
         const entityInfo = this.entities.valuesArray().map(e => e.serialize())
         const wires = this.wireConnections.serializeBpWires()
+        // Even on both axes for rail blueprints, so every rail keeps the grid
+        // position it was loaded with. This used to force the first rail-like
+        // entity onto an odd coordinate, which is only the convention of a
+        // straight rail: blueprints led by a curved rail or a train stop moved
+        // their rails by one tile on save.
         const center = this.getCenter()
-        const firstRailPos = this.getFirstRailRelatedEntityPos()
-
-        if (firstRailPos) {
-            if ((firstRailPos.x - center.x) % 2 === 0) {
-                center.x += 1
-            }
-            if ((firstRailPos.y - center.y) % 2 === 0) {
-                center.y += 1
-            }
-        }
 
         for (const e of entityInfo) {
             e.position.x -= center.x
@@ -963,11 +963,56 @@ function getOffset(data: Partial<IBlueprint>): IPoint {
         return { x: 0, y: 0 }
     }
 
+    /*
+        A blueprint holding anything on the 2x2 rail grid may only move by an
+        even number of whole tiles, or its rails leave their grid. The general
+        formula below adds the fractional part of the left edge, which is 0 for
+        every ordinary footprint but not for rails, whose footprints are rounded
+        from odd collision boxes (a curved rail's is about 1.5 x 5): it moved
+        rail blueprints by half tiles.
+    */
+    if (railGridStep((data.entities ?? []).map(e => e.name)) === 2) {
+        return {
+            x: -2 * Math.floor((minX + maxX) / 4),
+            y: -2 * Math.floor((minY + maxY) / 4),
+        }
+    }
+
     // The offset takes into account that the center of the blueprint might be shifted
     return {
         x: -Math.floor((minX + maxX) / 2) + (minX % 1),
         y: -Math.floor((minY + maxY) / 2) + (minY % 1),
     }
+}
+
+/** Entity types that sit on the 2x2 rail grid. */
+const RAIL_GRID_TYPES = new Set([
+    'straight-rail',
+    'half-diagonal-rail',
+    'curved-rail-a',
+    'curved-rail-b',
+    'legacy-straight-rail',
+    'legacy-curved-rail',
+    'elevated-straight-rail',
+    'elevated-half-diagonal-rail',
+    'elevated-curved-rail-a',
+    'elevated-curved-rail-b',
+    'rail-ramp',
+    'rail-support',
+    'train-stop',
+])
+
+/**
+ * 2 when any of these entities sits on the 2x2 rail grid - a rail of any kind,
+ * a train stop, or a prototype declaring `build_grid_size: 2` (the landing
+ * pad) - so whole-blueprint moves must be even; 1 otherwise.
+ */
+function railGridStep(names: Iterable<string>): 1 | 2 {
+    for (const name of names) {
+        const e = FD.entities[name] as { type: string; build_grid_size?: number } | undefined
+        if (e && (RAIL_GRID_TYPES.has(e.type) || e.build_grid_size === 2)) return 2
+    }
+    return 1
 }
 
 export { Blueprint, oilOutpostSettings, getFactorioVersion }

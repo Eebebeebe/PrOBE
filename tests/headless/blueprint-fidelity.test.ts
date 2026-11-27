@@ -2,6 +2,7 @@ import { beforeAll, describe, expect, it, vi } from 'vite-plus/test'
 import * as zlib from 'zlib'
 import { Blueprint } from '../../packages/editor/src/core/Blueprint'
 import { Book } from '../../packages/editor/src/core/Book'
+import FD from '../../packages/editor/src/core/factorioData'
 import { decode } from '../../packages/editor/src/core/bpString'
 import { discoverBlueprintFiles, readBlueprintString } from '../helpers/blueprint-files'
 import { loadTestData } from '../helpers/load-test-data'
@@ -109,5 +110,86 @@ describe('blueprint round-trip fidelity in Node', () => {
             }
         }
         expect(counts).toEqual(ALLOWED)
+    }, 300_000)
+
+    /*
+        Positions. serialize() re-bases a blueprint on its centre, so positions
+        do not come back as they went in - but every entity must move by the
+        same shift, in whole tiles, and in even tiles where the blueprint holds
+        anything on the 2x2 rail grid. Anything else changes the layout in the
+        game: a half-tile shift takes every entity off its grid, an odd one
+        takes rails off theirs, and a shift that differs per entity moves
+        entities relative to each other. All three happened: off-grid entities
+        (land mines, wagons) were snapped to the grid on load, and rail
+        blueprints moved by odd and half tiles.
+    */
+    it('moves every entity by one shared shift, keeping the rail grid', async () => {
+        vi.spyOn(console, 'warn').mockImplementation(() => {})
+        const RAIL_GRID = new Set([
+            'straight-rail',
+            'half-diagonal-rail',
+            'curved-rail-a',
+            'curved-rail-b',
+            'legacy-straight-rail',
+            'legacy-curved-rail',
+            'elevated-straight-rail',
+            'elevated-half-diagonal-rail',
+            'elevated-curved-rail-a',
+            'elevated-curved-rail-b',
+            'rail-ramp',
+            'rail-support',
+            'train-stop',
+        ])
+        const wrong: string[] = []
+        let checked = 0
+        let railChecked = 0
+        for (const file of discoverBlueprintFiles()) {
+            const s = readBlueprintString(file.filePath).replace(/\s/g, '')
+            const raw = JSON.parse(zlib.inflateSync(Buffer.from(s.slice(1), 'base64')).toString())
+            const inputs: Record<string, any>[] = []
+            const walk = (x: any) => {
+                if (x.blueprint) inputs.push(x.blueprint)
+                for (const e of x.blueprint_book?.blueprints ?? []) walk(e)
+            }
+            walk(raw)
+            const loaded = await decode(s)
+            const n = loaded instanceof Book ? loaded.lastBookIndex + 1 : 1
+            for (let i = 0; i < n; i++) {
+                const bp: Blueprint = loaded instanceof Book ? loaded.selectBlueprint(i) : loaded
+                const input = inputs[i]
+                if (!input.entities?.length) continue
+                const out = new Map<number, any>(
+                    (bp.serialize().entities ?? []).map(e => [e.entity_number, e])
+                )
+                const shifts = new Set<string>()
+                for (const e of input.entities) {
+                    const o = out.get(e.entity_number)
+                    if (o)
+                        shifts.add(`${o.position.x - e.position.x},${o.position.y - e.position.y}`)
+                }
+                const [dx, dy] = [...shifts][0].split(',').map(Number)
+                const rail = input.entities.some((e: any) => {
+                    const proto = FD.entities[e.name] as
+                        | { type: string; build_grid_size?: number }
+                        | undefined
+                    return (
+                        proto !== undefined &&
+                        (RAIL_GRID.has(proto.type) || proto.build_grid_size === 2)
+                    )
+                })
+                const where = `${file.filePath.split('test-blueprints/')[1]} #${i}`
+                if (shifts.size !== 1) wrong.push(`${where}: ${shifts.size} different shifts`)
+                else if (!Number.isInteger(dx) || !Number.isInteger(dy))
+                    wrong.push(`${where}: shift ${dx},${dy}`)
+                else if (rail && (dx % 2 !== 0 || dy % 2 !== 0))
+                    wrong.push(`${where}: odd shift ${dx},${dy}`)
+                checked += 1
+                if (rail) railChecked += 1
+            }
+        }
+        expect(wrong).toEqual([])
+        // Not a vacuous pass: the corpus is full of both kinds.
+        expect(checked).toBeGreaterThan(300)
+        expect(railChecked).toBeGreaterThan(200)
     }, 300_000)
 })

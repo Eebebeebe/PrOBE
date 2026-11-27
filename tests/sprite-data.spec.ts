@@ -54,6 +54,10 @@ const DIRECTIONS = [0, 4, 8, 12]
     see tests/headless/cargo-bay-connections.test.ts. Their bridges are not
     drawn yet - the gap test in tests/headless/sprite-generation.test.ts names
     them.
+    Which of a wall piece's two variations a tile draws follows the tile's
+    position, so when loading stopped moving rail-grid blueprints by odd and
+    half tiles, the real half's cargo-bay and landing-pad digests moved with
+    it - same number of pieces per bay, different variations.
 
     Moved with the 2.1 data, entity by entity: every digest that changed belongs
     to an entity whose prototype changed in data.json, none became FAILED or

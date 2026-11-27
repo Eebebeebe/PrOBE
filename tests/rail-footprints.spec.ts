@@ -91,10 +91,21 @@ const buildBlueprint = (): { source: string; placed: Placed[] } => {
             n++
             const col = n % 8
             const row = Math.floor(n / 8)
+            /*
+                Rails on whole tiles, where the game puts every rail (all
+                41,000 in test-blueprints/ have integer positions); the 1x1 and
+                3x3 controls on tile centres. This used to put rails on tile
+                centres too, which only measured the intended cells because
+                loading shifted any blueprint holding rails by half a tile - a
+                shift that also took real rail blueprints off their grid, and
+                is gone.
+            */
+            const onTiles = RAILS.includes(name)
+            const offset = onTiles ? 0 : 0.5
             entities.push({
                 entity_number: n,
                 name,
-                position: { x: col * SPACING + 0.5, y: row * SPACING + 0.5 },
+                position: { x: col * SPACING + offset, y: row * SPACING + offset },
                 direction,
             })
             placed.push({ name, direction, entityNumber: n })
