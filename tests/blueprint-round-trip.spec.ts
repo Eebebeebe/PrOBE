@@ -199,6 +199,13 @@ test('every test blueprint survives the decode/serialize round trip unchanged', 
  * keep their icons exactly as loaded instead of gaining an explicit signal
  * type. Every count and both position checksums held - same entities, same
  * places - which is the signature of extra fields being written, not moved.
+ *
+ * And from -1164412453 to 12290815 when getFactorioVersion stopped
+ * multiplying by 0xffffffff instead of 2^32 (tests/headless/factorio-version.test.ts):
+ * every serialized blueprint used to say 2.0.43 when the editor meant 2.0.45.
+ * Measured against the committed data.json with only that change applied;
+ * every count and both position checksums held, because only the `version`
+ * number in each blueprint changed.
  */
 //
 // The values now live in tests/__fixtures__/round-trip.json (moved verbatim,
