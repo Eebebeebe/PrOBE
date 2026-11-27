@@ -87,6 +87,16 @@ interface IEntityData extends Omit<IEntity, 'entity_number'> {
     entity_number?: number
 }
 
+/** What Blueprint.getBounds answers: the covered rectangle and its size, in tiles. */
+export interface BlueprintBounds {
+    minX: number
+    minY: number
+    maxX: number
+    maxY: number
+    width: number
+    height: number
+}
+
 export interface BlueprintEvents {
     'create-entity': [entity: Entity]
     'remove-entity': []
@@ -574,6 +584,57 @@ class Blueprint extends EventEmitter<BlueprintEvents> {
 
     public isEmpty(): boolean {
         return this.entities.isEmpty() && this.tiles.isEmpty()
+    }
+
+    /**
+     * The rectangle the blueprint covers, in tiles: every entity's footprint
+     * and every tile. Entities placed off the grid (land mines, wagons) are
+     * left out, as their position is not tied to a tile. `railParity` rounds
+     * the width and height up to even numbers, the step blueprints holding
+     * rails have to be pasted at. An empty blueprint is all zeros.
+     */
+    public getBounds(opts: { railParity?: boolean } = {}): BlueprintBounds {
+        let minX = Infinity
+        let minY = Infinity
+        let maxX = -Infinity
+        let maxY = -Infinity
+        const cover = (x0: number, y0: number, x1: number, y1: number): void => {
+            minX = Math.min(minX, x0)
+            minY = Math.min(minY, y0)
+            maxX = Math.max(maxX, x1)
+            maxY = Math.max(maxY, y1)
+        }
+        for (const e of this.entities.values()) {
+            if (e.entityData.flags?.includes('placeable-off-grid')) continue
+            const { x: w, y: h } = e.size
+            const x0 = Math.round(e.position.x - w / 2)
+            const y0 = Math.round(e.position.y - h / 2)
+            cover(x0, y0, x0 + w, y0 + h)
+        }
+        for (const t of this.tiles.values()) {
+            const x0 = Math.floor(t.x)
+            const y0 = Math.floor(t.y)
+            cover(x0, y0, x0 + 1, y0 + 1)
+        }
+        if (minX === Infinity) return { minX: 0, minY: 0, maxX: 0, maxY: 0, width: 0, height: 0 }
+
+        let width = maxX - minX
+        let height = maxY - minY
+        if (opts.railParity) {
+            width += width % 2
+            height += height % 2
+        }
+        return { minX, minY, maxX, maxY, width, height }
+    }
+
+    /** Width in tiles; see getBounds. */
+    public get width(): number {
+        return this.getBounds().width
+    }
+
+    /** Height in tiles; see getBounds. */
+    public get height(): number {
+        return this.getBounds().height
     }
 
     /**

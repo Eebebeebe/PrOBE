@@ -12,7 +12,7 @@
         cannot be imported at all.
 */
 export { Blueprint, oilOutpostSettings, getFactorioVersion } from './Blueprint'
-export type { BlueprintEvents, IOilOutpostSettings } from './Blueprint'
+export type { BlueprintBounds, BlueprintEvents, IOilOutpostSettings } from './Blueprint'
 export { Book } from './Book'
 export { Entity } from './Entity'
 export { Tile } from './Tile'
