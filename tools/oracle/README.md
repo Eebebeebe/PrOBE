@@ -56,6 +56,7 @@ This is the part that saves time, and it is not "open a disassembler":
 | `probe-blueprint-grid-position.mjs`  | Whether setting a grid position moves the entities (PR #222)                  |
 | `probe-text-limits.mjs`              | Which blueprint text fields survive a round trip, and how long (PrOBE code)   |
 | `probe-code-in-combinators.mjs`      | Whether code chunked into combinator comments survives build, edit, recapture |
+| `probe-pole-paste.mjs`               | Which copper wires pasted electric poles end up with, and why (PrOBE paste)   |
 
 One script here is not a probe and asks the game nothing:
 

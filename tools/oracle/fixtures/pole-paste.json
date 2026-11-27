@@ -1,0 +1,224 @@
+{
+    "question": "Which copper connections do electric poles end up with when a blueprint is pasted (build_blueprint, then every ghost revived as a robot would build it)?",
+    "provenance": {
+        "binary": "Version: 2.1.25 (build 88022, linux64, steam)",
+        "pole": "medium-electric-pole",
+        "reach": 9
+    },
+    "method": "headless --create; LuaItemStack.import_stack + build_blueprint (build_mode.forced), ghosts revived in x order (C2: reverse), copper connections read with get_wire_connector(pole_copper). Existing poles made with LuaSurface.create_entity before the paste. Positions are tile offsets from each case origin.",
+    "cases": [
+        {
+            "id": "A",
+            "existing": [[0, 0]],
+            "at": [5, 0],
+            "create": null,
+            "reverse": false,
+            "isolate": false,
+            "star": false
+        },
+        {
+            "id": "B",
+            "existing": [[0, 0]],
+            "at": [5, 0],
+            "create": null,
+            "reverse": false,
+            "isolate": false,
+            "star": false
+        },
+        {
+            "id": "C",
+            "existing": [],
+            "at": [0, 0],
+            "create": null,
+            "reverse": false,
+            "isolate": false,
+            "star": false
+        },
+        {
+            "id": "C2",
+            "existing": [],
+            "at": [0, 0],
+            "create": null,
+            "reverse": true,
+            "isolate": false,
+            "star": false
+        },
+        {
+            "id": "D",
+            "existing": [[0, 0]],
+            "at": [20, 0],
+            "create": null,
+            "reverse": false,
+            "isolate": false,
+            "star": false
+        },
+        {
+            "id": "E",
+            "existing": [
+                [5, 0],
+                [-5, 0],
+                [0, 5],
+                [0, -5],
+                [4, 4],
+                [-4, -4]
+            ],
+            "at": [0, 0],
+            "create": null,
+            "reverse": false,
+            "isolate": false,
+            "star": false
+        },
+        {
+            "id": "F",
+            "existing": [],
+            "at": [0, 0],
+            "create": null,
+            "reverse": false,
+            "isolate": false,
+            "star": false
+        },
+        {
+            "id": "H",
+            "existing": [
+                [6, 0],
+                [-6, 0],
+                [0, 6],
+                [0, -6],
+                [4, 4],
+                [-4, -4],
+                [4, -4],
+                [-4, 4]
+            ],
+            "at": [0, 0],
+            "create": null,
+            "reverse": false,
+            "isolate": true,
+            "star": false
+        },
+        {
+            "id": "I",
+            "existing": [
+                [0, 0],
+                [0, -8],
+                [8, -2],
+                [-8, -2],
+                [5, 6],
+                [-5, 6]
+            ],
+            "at": [3, 0],
+            "create": null,
+            "reverse": false,
+            "isolate": true,
+            "star": true
+        },
+        {
+            "id": "G",
+            "existing": [[0, 0]],
+            "at": null,
+            "create": [5, 0],
+            "reverse": false,
+            "isolate": false,
+            "star": false
+        }
+    ],
+    "result": {
+        "A": {
+            "errors": [],
+            "ghostsLeft": 0,
+            "poles": {
+                "0,0": ["5,0"],
+                "5,0": ["0,0"]
+            }
+        },
+        "B": {
+            "errors": [],
+            "ghostsLeft": 0,
+            "poles": {
+                "0,0": ["3,0"],
+                "3,0": ["0,0", "8,0"],
+                "8,0": ["3,0"]
+            }
+        },
+        "C": {
+            "errors": [],
+            "ghostsLeft": 0,
+            "poles": {
+                "-2,0": [],
+                "3,0": []
+            }
+        },
+        "C2": {
+            "errors": [],
+            "ghostsLeft": 0,
+            "poles": {
+                "-2,0": [],
+                "3,0": []
+            }
+        },
+        "D": {
+            "errors": [],
+            "ghostsLeft": 0,
+            "poles": {
+                "0,0": [],
+                "20,0": []
+            }
+        },
+        "E": {
+            "errors": [],
+            "ghostsLeft": 0,
+            "poles": {
+                "0,-5": ["-4,-4", "-5,0", "0,0", "5,0"],
+                "-4,-4": ["0,-5"],
+                "-5,0": ["0,-5", "0,5"],
+                "0,0": ["0,-5", "0,5", "4,4"],
+                "5,0": ["0,-5", "0,5", "4,4"],
+                "0,5": ["-5,0", "0,0", "5,0"],
+                "4,4": ["0,0", "5,0"]
+            }
+        },
+        "F": {
+            "errors": [],
+            "ghostsLeft": 0,
+            "poles": {
+                "-6,0": [],
+                "6,0": []
+            }
+        },
+        "H": {
+            "errors": [],
+            "ghostsLeft": 0,
+            "poles": {
+                "0,-6": ["0,0"],
+                "-4,-4": ["0,0"],
+                "4,-4": ["0,0"],
+                "-6,0": [],
+                "0,0": ["-4,-4", "-4,4", "0,-6", "4,-4", "4,4"],
+                "6,0": [],
+                "-4,4": ["0,0"],
+                "4,4": ["0,0"],
+                "0,6": []
+            }
+        },
+        "I": {
+            "errors": [],
+            "ghostsLeft": 0,
+            "poles": {
+                "0,-8": ["0,0", "3,0"],
+                "-8,-2": ["0,0"],
+                "8,-2": ["0,0", "3,0"],
+                "0,0": ["-5,6", "-8,-2", "0,-8", "5,6", "8,-2"],
+                "3,0": ["0,-8", "5,6", "8,-2"],
+                "-5,6": ["0,0"],
+                "5,6": ["0,0", "3,0"]
+            }
+        },
+        "G": {
+            "errors": [],
+            "ghostsLeft": 0,
+            "poles": {
+                "0,0": ["5,0"],
+                "5,0": ["0,0"]
+            }
+        }
+    }
+}
