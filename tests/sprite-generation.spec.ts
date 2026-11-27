@@ -1,6 +1,7 @@
 import { test, expect } from '@playwright/test'
 import { buildAllEntitiesBlueprint } from './helpers/all-entities-blueprint'
 import { discoverBlueprintFiles, readBlueprintString } from './helpers/blueprint-files'
+import { EXPECTED_SPRITE_FAILURES } from './helpers/sprite-expected-failures'
 
 /*
     Coverage net for spriteDataBuilder.ts, which is one draw_* function per entity
@@ -35,21 +36,8 @@ import { discoverBlueprintFiles, readBlueprintString } from './helpers/blueprint
 */
 const DIRECTIONS = [0, 4, 8, 12]
 
-/**
- * Entity types that cannot produce sprites today, and so render as a missing
- * sprite. Not an accepted cost - each is a real gap - but they predate this test.
- *
- * The last five are not placeable in a real blueprint: three decorative logos, a
- * Fulgoran ruin and a hidden internal entity. big-mining-drill is the one that
- * matters, a Space Age entity a player can actually build.
- */
-const EXPECTED_FAILURES: string[] = [
-    'factorio-logo-11tiles',
-    'factorio-logo-16tiles',
-    'factorio-logo-22tiles',
-    'fulgoran-ruin-attractor',
-    'hidden-electric-energy-interface',
-]
+// Shared with the Node twin, tests/headless/sprite-generation.test.ts.
+const EXPECTED_FAILURES: readonly string[] = EXPECTED_SPRITE_FAILURES
 
 test('every entity type produces sprites', async ({ page }) => {
     const { source, names } = buildAllEntitiesBlueprint(DIRECTIONS)

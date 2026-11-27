@@ -175,6 +175,8 @@ export interface IDeciderCondition {
     conditions?: DeciderCombinatorCondition[]
     /** post 2.0 */
     outputs?: DeciderCombinatorOutput[]
+    /** post 2.1: outputs used while the conditions are false */
+    else_outputs?: DeciderCombinatorOutput[]
 }
 
 /** When not specified, defaults to "*". */

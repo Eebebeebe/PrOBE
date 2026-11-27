@@ -10,6 +10,7 @@ import FD, {
     hasModuleIconsSuppressed,
     recipeIngredients,
     recipeResults,
+    shownPipeConnections,
 } from '../core/factorioData'
 import F from '../UI/controls/functions'
 import G from '../common/globals'
@@ -133,7 +134,7 @@ export class OverlayContainer extends Container {
                     }
                 }
 
-                for (const connection of fb.pipe_connections) {
+                for (const connection of shownPipeConnections(fb)) {
                     if (
                         !(
                             connection.connection_type === undefined ||

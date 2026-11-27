@@ -170,8 +170,15 @@ export function localisedName(proto: { localised_name?: LocalisedString }): stri
     return String(name)
 }
 
+/**
+ * Whether a recipe lets this module in. A recipe the data does not know (a
+ * modded one, or a rename not yet migrated) imposes no restriction instead of
+ * throwing; decode() already warns about unknown recipe names in the schema
+ * check, so this does not hide them.
+ */
 export function recipeSupportsModule(recipe: string, module: ModulePrototype): boolean {
-    const r = FD.recipes[recipe]
+    const r = FD.recipes[recipe] as (typeof FD.recipes)[string] | undefined
+    if (r === undefined) return true
     if (r.allowed_module_categories && !r.allowed_module_categories.includes(module.category))
         return false
     if (module.effect.consumption && !(r.allow_consumption === undefined || r.allow_consumption))
@@ -480,6 +487,20 @@ export function getWireConnectionPoint(
         default:
             return null
     }
+}
+
+/**
+ * The pipe connections of a fluid box that the game shows info arrows for.
+ * Factorio 2.0 hid a whole fluid box with `hide_connection_info` on the box;
+ * 2.1 moved the flag onto single connections (a pump hides only its input
+ * side). Both places are honoured, so either data file draws what the game
+ * draws.
+ */
+export function shownPipeConnections(fb: FluidBox): FluidBox['pipe_connections'] {
+    if (fb.hide_connection_info) return []
+    return fb.pipe_connections.filter(
+        c => !(c as { hide_connection_info?: boolean }).hide_connection_info
+    )
 }
 
 export function getFluidBoxes(

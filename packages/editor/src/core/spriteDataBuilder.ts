@@ -1126,13 +1126,17 @@ function draw_assembling_machine(
                     const pipePic =
                         dirEntry(fb.pipe_picture, util.getDirName(dir)) ||
                         (fb.pipe_picture as unknown as SpriteData)
-                    if (!pipePic || !pipePic.filename) continue
-                    out.push(
-                        addToShift(
-                            util.rotatePointBasedOnDir([0, -2], dir),
-                            util.duplicate(pipePic)
+                    if (!pipePic) continue
+                    // 2.1 wraps each direction's picture in `layers` (sprite plus shadow).
+                    for (const layer of layersOf(pipePic)) {
+                        if (!layer.filename) continue
+                        out.push(
+                            addToShift(
+                                util.rotatePointBasedOnDir([0, -2], dir),
+                                util.duplicate(layer)
+                            )
                         )
-                    )
+                    }
                 }
             }
 
@@ -1324,7 +1328,16 @@ function getCargoBayConnectionSprites(
 
 function draw_cargo_bay(e: CargoBayPrototype): (data: IDrawData) => readonly SpriteData[] {
     return (data: IDrawData) => {
-        const base = (e as any).graphics_set.picture.flatMap((p: any) => p.layers)
+        /*
+            A cargo bay's picture is one list of layered parts. 2.1's
+            landing-pad-unloading-bay is the first cargo bay that rotates, and
+            keeps one such list per direction instead.
+        */
+        const picture = (e as any).graphics_set.picture
+        const parts = Array.isArray(picture)
+            ? picture
+            : need(picture, util.getDirName(data.dir) as 'north')
+        const base = parts.flatMap((p: any) => p.layers)
         const connections = getCargoBayConnectionSprites(
             (e as any).graphics_set.connections,
             data.position,
@@ -1668,10 +1681,20 @@ function draw_gate(e: GatePrototype): (data: IDrawData) => readonly SpriteData[]
     }
 }
 function draw_generator(e: GeneratorPrototype): (data: IDrawData) => readonly SpriteData[] {
-    return (data: IDrawData) =>
-        data.dir % 8 === 0
+    /*
+        Factorio 2.1 moved the two animations into `pictures.{north,east}`
+        (a steam engine faces one of two ways, so there is no south or west).
+        The 2.0 fields stay as the fallback, so either data file draws.
+    */
+    const pictures = (e as { pictures?: Record<'north' | 'east', { animation: Animation }> })
+        .pictures
+    return (data: IDrawData) => {
+        const vertical = data.dir % 8 === 0
+        if (pictures) return layersOf(need(pictures, vertical ? 'north' : 'east', 'animation'))
+        return vertical
             ? layersOf(need(e, 'vertical_animation'))
             : layersOf(need(e, 'horizontal_animation'))
+    }
 }
 function draw_heat_interface(
     e: HeatInterfacePrototype
@@ -2072,8 +2095,26 @@ function draw_locomotive(e: LocomotivePrototype): (data: IDrawData) => readonly 
 function draw_logistic_container(
     e: LogisticContainerPrototype
 ): (data: IDrawData) => readonly SpriteData[] {
-    return () => need(e, 'animation', 'layers')
+    // 2.1 moved the chest's animation under `robot_door`; 2.0 kept it on top.
+    const door = (e as { robot_door?: { animation: Animation } }).robot_door
+    return () => layersOf(door ? door.animation : need(e, 'animation'))
 }
+/**
+ * The pumpjack's base. 2.0 had a `base_picture` sheet with one frame per
+ * direction, picked by shifting `x`. 2.1 dropped it for an always-drawn working
+ * visualisation whose `{dir}_animation` layers already carry their `x`
+ * (and now a shadow too), so they must not be shifted again.
+ */
+function pumpjackBase(e: MiningDrillPrototype, dir: number): readonly SpriteData[] {
+    if (e.base_picture) {
+        return [duplicateAndSetPropertyUsing(sheetsOf(e.base_picture)[0], 'x', 'width', dir / 4)]
+    }
+    const always = need(e, 'graphics_set', 'working_visualisations').find(v => v.always_draw)
+    if (!always)
+        throw new Error(`${e.name} has neither base_picture nor an always-drawn visualisation`)
+    return dirLayers(always, `${util.getDirName(dir)}_animation`)
+}
+
 function draw_mining_drill(e: MiningDrillPrototype): (data: IDrawData) => readonly SpriteData[] {
     switch (e.name) {
         case 'burner-mining-drill':
@@ -2082,12 +2123,7 @@ function draw_mining_drill(e: MiningDrillPrototype): (data: IDrawData) => readon
 
         case 'pumpjack':
             return (data: IDrawData) => [
-                duplicateAndSetPropertyUsing(
-                    sheetsOf(need(e, 'base_picture'))[0],
-                    'x',
-                    'width',
-                    data.dir / 4
-                ),
+                ...pumpjackBase(e, data.dir),
                 ...fourWayAnimation(need(e, 'graphics_set', 'animation'), 0),
             ]
 

@@ -1014,6 +1014,13 @@
                                                 "items": {
                                                     "$ref": "blueprintSchema.json#/definitions/DeciderCombinatorOutput"
                                                 }
+                                            },
+                                            "else_outputs": {
+                                                "type": "array",
+                                                "$comment": "post 2.1: outputs used while the conditions are false",
+                                                "items": {
+                                                    "$ref": "blueprintSchema.json#/definitions/DeciderCombinatorOutput"
+                                                }
                                             }
                                         }
                                     },
