@@ -63,3 +63,27 @@ export class InvalidQualityError extends Error {
         this.name = 'InvalidQualityError'
     }
 }
+
+/** Thrown when a label asked for as unique belongs to more than one blueprint. */
+export class AmbiguousLabelError extends Error {
+    public constructor(
+        public readonly label: string,
+        public readonly paths: readonly (readonly number[])[]
+    ) {
+        const where = paths.map(p => p.join('.'))
+        const list = `${where.slice(0, -1).join(', ')} and ${where[where.length - 1]}`
+        super(`${paths.length} blueprints are labelled "${label}": slots ${list}`)
+        this.name = 'AmbiguousLabelError'
+    }
+}
+
+/** Thrown when a path into a book does not lead to what the call needs, or a slot is taken. */
+export class BookPathError extends Error {
+    public constructor(
+        public readonly path: readonly number[],
+        public readonly reason: string
+    ) {
+        super(`Book path ${path.length ? path.join('.') : '(empty)'}: ${reason}`)
+        this.name = 'BookPathError'
+    }
+}
