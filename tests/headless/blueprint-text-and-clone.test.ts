@@ -16,7 +16,9 @@ import { loadTestData } from '../helpers/load-test-data'
 const chest = { entity_number: 1, name: 'wooden-chest', position: { x: 0.5, y: 0.5 } }
 
 async function basicBuilder(): Promise<Blueprint> {
-    const book = await decode(readFileSync('tests/__fixtures__/books/basic-builder.txt', 'utf8').trim())
+    const book = await decode(
+        readFileSync('tests/__fixtures__/books/basic-builder.txt', 'utf8').trim()
+    )
     if (!(book instanceof Book)) throw new Error('expected the basic-builder book')
     return book.selectBlueprint(0)
 }
