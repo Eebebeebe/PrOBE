@@ -97,13 +97,12 @@ describe('sprite generation in Node', () => {
     })
 
     /*
-        A known gap, pinned so it cannot be forgotten. Factorio 2.1 replaced the
-        cargo bay family's named wall and corner sprites (top_wall,
-        bottom_left_outer_corner, ...) with a `tileset` picked through a
-        neighbour-mask `tileset_mapping`. getCargoBayConnectionSprites still
-        looks the old names up, finds none, and draws no walls - silently, which
-        is why it is spelled out here. Fixing it should empty
-        the tileset half of this list.
+        Every connection field the cargo-bay drawer does not read, by name, so a
+        new one cannot go unnoticed. Factorio 2.1 replaced the named wall and
+        corner sprites with a `tileset` (read since then, see
+        cargo-bay-connections.test.ts). What is left are the bridges between
+        bays: where the game draws them is decided by the engine, not by any
+        field in data.json, so they wait on an in-game reference.
     */
     it('names the cargo-bay connection fields the drawer does not read yet', () => {
         const READ = new Set([
@@ -119,6 +118,8 @@ describe('sprite generation in Node', () => {
             'top_right_inner_corner',
             'bottom_left_inner_corner',
             'bottom_right_inner_corner',
+            'tileset',
+            'tileset_mapping',
         ])
         const unread: string[] = []
         for (const [name, e] of Object.entries(FD.entities)) {
@@ -133,45 +134,33 @@ describe('sprite generation in Node', () => {
                 }
             }
         }
-        // tileset / tileset_mapping: new in 2.1, the walls and corners.
-        // bridge_*: never read, in 2.0 either - bays drawn side by side show no
-        // bridge between them.
+        // Never read, in 2.0 either.
         expect(unread.sort()).toEqual([
             'cargo-bay.graphics_set.connections.bridge_crossing',
             'cargo-bay.graphics_set.connections.bridge_horizontal_narrow',
             'cargo-bay.graphics_set.connections.bridge_horizontal_wide',
             'cargo-bay.graphics_set.connections.bridge_vertical_narrow',
             'cargo-bay.graphics_set.connections.bridge_vertical_wide',
-            'cargo-bay.graphics_set.connections.tileset',
-            'cargo-bay.graphics_set.connections.tileset_mapping',
             'cargo-bay.platform_graphics_set.connections.bridge_crossing',
             'cargo-bay.platform_graphics_set.connections.bridge_horizontal_narrow',
             'cargo-bay.platform_graphics_set.connections.bridge_horizontal_wide',
             'cargo-bay.platform_graphics_set.connections.bridge_vertical_narrow',
             'cargo-bay.platform_graphics_set.connections.bridge_vertical_wide',
-            'cargo-bay.platform_graphics_set.connections.tileset',
-            'cargo-bay.platform_graphics_set.connections.tileset_mapping',
             'cargo-landing-pad.graphics_set.connections.bridge_crossing',
             'cargo-landing-pad.graphics_set.connections.bridge_horizontal_narrow',
             'cargo-landing-pad.graphics_set.connections.bridge_horizontal_wide',
             'cargo-landing-pad.graphics_set.connections.bridge_vertical_narrow',
             'cargo-landing-pad.graphics_set.connections.bridge_vertical_wide',
-            'cargo-landing-pad.graphics_set.connections.tileset',
-            'cargo-landing-pad.graphics_set.connections.tileset_mapping',
             'landing-pad-unloading-bay.graphics_set.connections.bridge_crossing',
             'landing-pad-unloading-bay.graphics_set.connections.bridge_horizontal_narrow',
             'landing-pad-unloading-bay.graphics_set.connections.bridge_horizontal_wide',
             'landing-pad-unloading-bay.graphics_set.connections.bridge_vertical_narrow',
             'landing-pad-unloading-bay.graphics_set.connections.bridge_vertical_wide',
-            'landing-pad-unloading-bay.graphics_set.connections.tileset',
-            'landing-pad-unloading-bay.graphics_set.connections.tileset_mapping',
             'space-platform-hub.graphics_set.connections.bridge_crossing',
             'space-platform-hub.graphics_set.connections.bridge_horizontal_narrow',
             'space-platform-hub.graphics_set.connections.bridge_horizontal_wide',
             'space-platform-hub.graphics_set.connections.bridge_vertical_narrow',
             'space-platform-hub.graphics_set.connections.bridge_vertical_wide',
-            'space-platform-hub.graphics_set.connections.tileset',
-            'space-platform-hub.graphics_set.connections.tileset_mapping',
         ])
     })
 })

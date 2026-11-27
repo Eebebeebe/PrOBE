@@ -49,10 +49,11 @@ const DIRECTIONS = [0, 4, 8, 12]
     real halves because util.getDirName throws for the diagonal facings (2 and
     14) the corpus places it at.
 
-    Also known-wrong since the Factorio 2.1 data: cargo-bay (and the other
-    cargo-bay-like entities) draw no walls or corners, because 2.1 moved them
-    into a `tileset` the drawer does not read yet. The gap is pinned by name in
-    tests/headless/sprite-generation.test.ts.
+    The cargo-bay family (cargo-bay, the unloading bay, the landing pad, the
+    platform hub) draws its 2.1 tileset walls wherever it has a position grid;
+    see tests/headless/cargo-bay-connections.test.ts. Their bridges are not
+    drawn yet - the gap test in tests/headless/sprite-generation.test.ts names
+    them.
 
     Moved with the 2.1 data, entity by entity: every digest that changed belongs
     to an entity whose prototype changed in data.json, none became FAILED or

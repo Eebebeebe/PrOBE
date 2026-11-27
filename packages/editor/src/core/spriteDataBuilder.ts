@@ -1260,19 +1260,127 @@ function draw_burner_generator(
 ): (data: IDrawData) => readonly SpriteData[] {
     return (data: IDrawData) => layersOf(getAnimation((e as any).animation, data.dir))
 }
+/** Entities whose cargo-bay connection walls join into one structure. */
 function isCargoBayLike(entity: { type: string } | undefined): boolean {
     return (
-        entity !== undefined && (entity.type === 'cargo-bay' || entity.type === 'cargo-landing-pad')
+        entity !== undefined &&
+        (entity.type === 'cargo-bay' ||
+            entity.type === 'cargo-landing-pad' ||
+            entity.type === 'space-platform-hub')
     )
 }
 
+/**
+ * The tiles an entity's connection walls are drawn over, as the top-left tile
+ * and the size. getEntitySize prefers `tile_width`/`tile_height`, which matters
+ * for the unloading bay: its collision box sticks out a row past its 4x4.
+ */
+function connectionFootprint(
+    e: EntityWithOwnerPrototype,
+    position: IPoint,
+    dir: number
+): { x0: number; y0: number; w: number; h: number } {
+    const { x: w, y: h } = getEntitySize(e, dir)
+    return { x0: Math.round(position.x - w / 2), y0: Math.round(position.y - h / 2), w, h }
+}
+
+/*
+    The Factorio 2.1 cargo-bay connection walls, which replaced 2.0's named
+    top_wall / bottom_left_outer_corner / ... sprites. Every tile of the joined
+    structure (bays, the unloading bay, the landing pad, the platform hub) looks
+    at its eight neighbours; `tileset_mapping` turns that bitmask into up to
+    three `tileset` pieces drawn at the tile. Bits run clockwise from the top
+    left: TL=0, T=1, TR=2, R=3, BR=4, B=5, BL=6, L=7. (The API docs say "right
+    tile has bit 7"; every mapping entry fits left, e.g. the top-left outer
+    corner piece is only ever mapped where T and L are clear.) A mask mapped to
+    0 or not mapped at all - inside the structure, or a tile with no neighbour -
+    draws nothing.
+
+    A piece is a list of groups, a group a list of variations. The game picks
+    the group by tile position, so neighbouring wall tiles interleave, and the
+    variation at random; the editor picks the variation by position too, so a
+    redraw does not shuffle the walls.
+*/
+const CONNECTION_NEIGHBOURS: readonly (readonly [number, number])[] = [
+    [-1, -1],
+    [0, -1],
+    [1, -1],
+    [1, 0],
+    [1, 1],
+    [0, 1],
+    [-1, 1],
+    [-1, 0],
+]
+
 function getCargoBayConnectionSprites(
+    e: EntityWithOwnerPrototype,
+    connections: any,
+    data: IDrawData
+): SpriteData[] {
+    const positionGrid = data.positionGrid
+    if (!connections || !positionGrid) return []
+    // 2.1 data; a 2.0 data.json has the named pieces and no tileset.
+    if (!connections.tileset)
+        return getNamedConnectionSprites(connections, data.position, positionGrid)
+
+    const tileset: any[][][] = connections.tileset
+    const mapping: Record<string, number | number[]> = need(connections, 'tileset_mapping')
+
+    const connected = (tx: number, ty: number): boolean => {
+        const other = positionGrid.getEntityAtPosition({ x: tx + 0.5, y: ty + 0.5 })
+        if (!other || !isCargoBayLike(other)) return false
+        const f = connectionFootprint(other.entityData, other.position, other.direction)
+        return tx >= f.x0 && tx < f.x0 + f.w && ty >= f.y0 && ty < f.y0 + f.h
+    }
+
+    const { x0, y0, w, h } = connectionFootprint(e, data.position, data.dir)
+    const sprites: SpriteData[] = []
+    for (let ty = y0; ty < y0 + h; ty++) {
+        for (let tx = x0; tx < x0 + w; tx++) {
+            let mask = 0
+            CONNECTION_NEIGHBOURS.forEach(([dx, dy], bit) => {
+                if (connected(tx + dx, ty + dy)) mask |= 1 << bit
+            })
+            const mapped = mapping[String(mask)]
+            if (mapped === undefined) continue
+            const pieces = Array.isArray(mapped) ? mapped : [mapped]
+            // Where this tile's centre sits relative to the entity's position.
+            const offset: [number, number] = [
+                tx + 0.5 - data.position.x,
+                ty + 0.5 - data.position.y,
+            ]
+            for (const piece of pieces) {
+                if (piece === 0) continue
+                const groups = need(tileset, piece - 1)
+                const group = groups[(((tx + ty) % groups.length) + groups.length) % groups.length]
+                const variation = group[positionHash(tx, ty) % group.length]
+                for (const rendition of variation) {
+                    for (const layer of layersOf(rendition)) {
+                        const { render_layer: _render_layer, ...sprite } = layer as any
+                        sprites.push(addToShift(offset, util.duplicate(sprite)))
+                    }
+                }
+            }
+        }
+    }
+    return sprites
+}
+
+/** A small stable hash of a tile, for picking variations without Math.random. */
+function positionHash(x: number, y: number): number {
+    return Math.abs((Math.imul(x, 73856093) ^ Math.imul(y, 19349663)) | 0)
+}
+
+/**
+ * Factorio 2.0's connection pieces, kept so a 2.0 data.json still draws: one
+ * named sprite per wall and corner of a 4x4 bay, chosen from its four direct
+ * and four diagonal neighbours.
+ */
+function getNamedConnectionSprites(
     connections: any,
     position: IPoint,
-    positionGrid: PositionGrid | undefined
+    positionGrid: PositionGrid
 ): SpriteData[] {
-    if (!connections || !positionGrid) return []
-
     // Cargo bays are 4x4 tiles. Check tiles just outside the boundary for adjacent cargo bays.
     const x0 = Math.round(position.x - 2)
     const y0 = Math.round(position.y - 2)
@@ -1339,9 +1447,9 @@ function draw_cargo_bay(e: CargoBayPrototype): (data: IDrawData) => readonly Spr
             : need(picture, util.getDirName(data.dir) as 'north')
         const base = parts.flatMap((p: any) => p.layers)
         const connections = getCargoBayConnectionSprites(
+            e,
             (e as any).graphics_set.connections,
-            data.position,
-            data.positionGrid
+            data
         )
         return [...connections, ...base]
     }
@@ -1352,9 +1460,9 @@ function draw_cargo_landing_pad(
     return (data: IDrawData) => {
         const base = (e as any).graphics_set.picture.flatMap((p: any) => p.layers)
         const connections = getCargoBayConnectionSprites(
+            e,
             (e as any).graphics_set.connections,
-            data.position,
-            data.positionGrid
+            data
         )
         return [...connections, ...base]
     }
@@ -2434,7 +2542,10 @@ function draw_solar_panel(e: SolarPanelPrototype): (data: IDrawData) => readonly
 function draw_space_platform_hub(
     e: SpacePlatformHubPrototype
 ): (data: IDrawData) => readonly SpriteData[] {
-    return () => (e as any).graphics_set.picture.flatMap((p: any) => p.layers)
+    return (data: IDrawData) => [
+        ...getCargoBayConnectionSprites(e, (e as any).graphics_set.connections, data),
+        ...(e as any).graphics_set.picture.flatMap((p: any) => p.layers),
+    ]
 }
 function draw_splitter(e: SplitterPrototype): (data: IDrawData) => readonly SpriteData[] {
     return (data: IDrawData) => {
