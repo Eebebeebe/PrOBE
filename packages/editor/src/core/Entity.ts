@@ -15,7 +15,12 @@ import {
     ScheduleData,
 } from '../types'
 import util from '../common/util'
-import { IllegalFlipError, IncompatibleUpgradeError } from './errors'
+import {
+    IllegalFlipError,
+    IncompatibleUpgradeError,
+    InvalidQualityError,
+    InvalidRecipeError,
+} from './errors'
 import { coreSettings } from './config'
 import FD, {
     ColorWithAlpha,
@@ -25,6 +30,7 @@ import FD, {
     getModule,
     getPossibleRotations,
     isCraftingMachine,
+    isQuality,
     isInserter,
     isLoader,
     isMiningDrill,
@@ -157,6 +163,8 @@ export interface EntityEvents {
     destroy: []
     /** The entity became another one in place (setName): redraw it. */
     name: []
+    quality: []
+    recipeQuality: []
     position: [newValue: IPoint, oldValue: IPoint]
     direction: []
     directionType: []
@@ -456,6 +464,79 @@ export class Entity extends EventEmitter<EntityEvents> {
     public get recipe(): string | undefined {
         return this.m_rawEntity.recipe
     }
+
+    /**
+     * Sets the recipe, and optionally its quality, the strict way scripts
+     * need: a recipe this machine cannot craft throws InvalidRecipeError, and
+     * so does one that some of its modules do not work with. (The plain
+     * `recipe` setter, which the editor's dialog uses, removes such modules
+     * instead.)
+     */
+    public setRecipe(recipe: string, quality?: string): void {
+        if (!this.acceptedRecipes.includes(recipe)) {
+            throw new InvalidRecipeError(
+                this.name,
+                recipe,
+                FD.recipes[recipe] === undefined ? 'there is no such recipe' : 'it cannot craft it'
+            )
+        }
+        if (quality !== undefined && !isQuality(quality)) throw new InvalidQualityError(quality)
+        const unusable = this.modules.filter(
+            (m): m is string => m !== undefined && !recipeSupportsModule(recipe, getModule(m))
+        )
+        if (unusable.length > 0) {
+            throw new InvalidRecipeError(
+                this.name,
+                recipe,
+                `the recipe does not work with ${[...new Set(unusable)].join(', ')}`
+            )
+        }
+        this.m_BP.history.startTransaction('Set recipe')
+        this.recipe = recipe
+        if (quality !== undefined) this.recipeQuality = quality
+        this.m_BP.history.commitTransaction()
+    }
+
+    /**
+     * The entity's own quality. The game leaves the field out for normal
+     * quality, so an absent one reads as 'normal' and setting 'normal' removes
+     * it. Throws InvalidQualityError for anything but normal ... legendary.
+     */
+    public get quality(): string {
+        return this.m_rawEntity.quality ?? 'normal'
+    }
+    public set quality(quality: string) {
+        if (!isQuality(quality)) throw new InvalidQualityError(quality)
+        const stored = quality === 'normal' ? undefined : quality
+        if (this.m_rawEntity.quality === stored) return
+        this.m_BP.history
+            .updateValue(this.m_rawEntity, 'quality', stored, 'Change quality')
+            .onDone(() => this.emit('quality'))
+            .commit()
+    }
+
+    /**
+     * The quality the recipe is crafted at. The game writes it out with every
+     * recipe, 'normal' included, so it is stored as given; undefined without a
+     * recipe. Setting it without a recipe throws.
+     */
+    public get recipeQuality(): string | undefined {
+        if (this.m_rawEntity.recipe === undefined) return undefined
+        return this.m_rawEntity.recipe_quality ?? 'normal'
+    }
+    public set recipeQuality(quality: string | undefined) {
+        if (quality !== undefined) {
+            if (this.m_rawEntity.recipe === undefined) {
+                throw new Error(`${this.name} has no recipe to give a quality`)
+            }
+            if (!isQuality(quality)) throw new InvalidQualityError(quality)
+        }
+        if (this.m_rawEntity.recipe_quality === quality) return
+        this.m_BP.history
+            .updateValue(this.m_rawEntity, 'recipe_quality', quality, 'Change recipe quality')
+            .onDone(() => this.emit('recipeQuality'))
+            .commit()
+    }
     public set recipe(recipe: string | undefined) {
         if (this.m_rawEntity.recipe === recipe) return
 
@@ -465,6 +546,14 @@ export class Entity extends EventEmitter<EntityEvents> {
             .updateValue(this.m_rawEntity, 'recipe', recipe, 'Change recipe')
             .onDone(r => this.emit('recipe', r))
             .commit()
+
+        // A quality picked for the old recipe does not carry over to another.
+        if (this.m_rawEntity.recipe_quality !== undefined) {
+            this.m_BP.history
+                .updateValue(this.m_rawEntity, 'recipe_quality', undefined, 'Change recipe quality')
+                .onDone(() => this.emit('recipeQuality'))
+                .commit()
+        }
 
         // Some modules on the entity may not be compatible with the new selected recipe, filter those out
         if (recipe !== undefined) {
@@ -1503,6 +1592,8 @@ export class Entity extends EventEmitter<EntityEvents> {
                     ? sourceEntity.recipe
                     : undefined
             this.recipe = tRecipe
+            // The recipe's quality comes with it, as in the game's copy-paste.
+            if (tRecipe !== undefined) this.recipeQuality = sourceEntity.recipeQuality
         }
 
         // PASTE DIRECTION (only for type assembling_machine)

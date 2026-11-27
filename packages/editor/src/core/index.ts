@@ -27,5 +27,11 @@ export {
 } from './bpString'
 export { default as FD, loadData } from './factorioData'
 export { coreSettings, CoreSettings } from './config'
-export { IllegalFlipError, IncompatibleUpgradeError, TextTooLongError } from './errors'
+export {
+    IllegalFlipError,
+    IncompatibleUpgradeError,
+    InvalidQualityError,
+    InvalidRecipeError,
+    TextTooLongError,
+} from './errors'
 export { TEXT_LIMITS, utf8Length } from './textLimits'

@@ -1,6 +1,7 @@
 import { CircuitConnectorDefinition } from 'factorio:prototype'
 import { IconData, LocalisedString } from 'factorio:prototype'
 import {
+    QualityPrototype,
     RecipePrototype,
     IngredientPrototype,
     ProductPrototype,
@@ -955,6 +956,8 @@ export interface FactorioData {
     fluids: Record<string, FluidPrototype>
     signals: Record<string, VirtualSignalPrototype>
     recipes: Record<string, RecipePrototype>
+    /** Quality tiers (normal ... legendary, plus the hidden quality-unknown). */
+    qualities: Record<string, QualityPrototype>
     entities: Record<string, EntityWithOwnerPrototype>
     tiles: Record<string, TilePrototype>
     inventoryLayout: InventoryLayoutGroup[]
@@ -995,6 +998,7 @@ const FD_KEYS: Record<keyof FactorioData, true> = {
     fluids: true,
     signals: true,
     recipes: true,
+    qualities: true,
     entities: true,
     tiles: true,
     inventoryLayout: true,
@@ -1052,6 +1056,7 @@ export function loadData(str: string): void {
     FD.fluids = data.fluids
     FD.signals = data.signals
     FD.recipes = data.recipes
+    FD.qualities = data.qualities
     FD.entities = data.entities
     FD.tiles = data.tiles
     FD.inventoryLayout = data.inventoryLayout
@@ -1072,6 +1077,12 @@ export function loadData(str: string): void {
 }
 
 export default FD
+
+/** Whether `name` is a quality a player can pick: known and not hidden. */
+export function isQuality(name: string): boolean {
+    const q = FD.qualities[name] as QualityPrototype | undefined
+    return q !== undefined && q.hidden !== true
+}
 
 export function hasModuleFunctionality(
     e: EntityWithOwnerPrototype

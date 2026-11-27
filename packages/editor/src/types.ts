@@ -231,7 +231,10 @@ export interface IEntity {
     type?: DirectionType
     /** recipe name, only present if entity is of type assembling-machine or has fixed_recipe */
     recipe?: string
+    /** Quality the recipe is crafted at; the game writes it with every recipe, 'normal' included. */
     recipe_quality?: string
+    /** The entity's quality; absent means normal, which the game never writes out. */
+    quality?: string
     /** inventory size limitation, only present if entity has inventory_size */
     bar?: number
     /**

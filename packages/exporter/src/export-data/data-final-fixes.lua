@@ -185,6 +185,21 @@ do
     output.signals = signals
 end
 
+-- QUALITIES
+-- Entities, recipes, modules and filters can all carry a quality (normal,
+-- uncommon, rare, epic, legendary). Exported so the editor can tell a valid
+-- quality name from a typo and order the tiers by `level`.
+do
+    local qualities = {}
+
+    for _, quality in pairs(deep_copy(data.raw.quality or {})) do
+        localise(quality, 'quality')
+        qualities[quality.name] = quality
+    end
+
+    output.qualities = qualities
+end
+
 -- RECIPES
 do
     local recipes = {}

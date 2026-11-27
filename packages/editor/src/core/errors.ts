@@ -43,3 +43,23 @@ export class IncompatibleUpgradeError extends Error {
         this.name = 'IncompatibleUpgradeError'
     }
 }
+
+/** Thrown for a recipe an entity cannot craft, or a recipe change that would lose its modules. */
+export class InvalidRecipeError extends Error {
+    public constructor(
+        public readonly entity: string,
+        public readonly recipe: string,
+        public readonly reason: string
+    ) {
+        super(`${entity} cannot use recipe ${recipe}: ${reason}`)
+        this.name = 'InvalidRecipeError'
+    }
+}
+
+/** Thrown for a quality name that is not one a player can pick (normal ... legendary). */
+export class InvalidQualityError extends Error {
+    public constructor(public readonly quality: string) {
+        super(`${quality} is not a quality`)
+        this.name = 'InvalidQualityError'
+    }
+}
