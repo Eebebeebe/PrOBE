@@ -48,6 +48,18 @@ const DIRECTIONS = [0, 4, 8, 12]
     generate no layers at all ("0:..."), and railgun-turret is "FAILED" in both
     real halves because util.getDirName throws for the diagonal facings (2 and
     14) the corpus places it at.
+
+    Also known-wrong since the Factorio 2.1 data: cargo-bay (and the other
+    cargo-bay-like entities) draw no walls or corners, because 2.1 moved them
+    into a `tileset` the drawer does not read yet. The gap is pinned by name in
+    tests/headless/sprite-generation.test.ts.
+
+    Moved with the 2.1 data, entity by entity: every digest that changed belongs
+    to an entity whose prototype changed in data.json, none became FAILED or
+    empty, and the probe that recorded them reproduced the old fixture exactly
+    on the commit before. Steam engines, turbines, logistic chests and the
+    pumpjack, whose graphics moved within the prototype, kept their digests:
+    the new reads draw exactly what the old ones did.
 */
 const EXPECTED: {
     synthetic: Record<string, string[]>
