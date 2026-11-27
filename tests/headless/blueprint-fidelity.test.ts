@@ -57,6 +57,11 @@ describe('blueprint round-trip fidelity in Node', () => {
         // Entities facing north carry no direction in the game's export; the
         // editor writes direction: 0. Same meaning; to be dropped next.
         'entity.direction: added': 149585,
+        // Factorio 2.1 renamed the foundry recipes molten-iron and molten-copper
+        // (space-age/migrations/ore-melting.json), and the editor migrates
+        // pre-2.1 blueprints the same way the game does on import: 15 foundries
+        // in gleba-mall-5-planets.txt and 1 in nauvis-midgame-science.txt.
+        'entity.recipe: changed': 16,
     }
 
     it('changes nothing else across the test-blueprints corpus', async () => {

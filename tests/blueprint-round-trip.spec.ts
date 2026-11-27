@@ -206,6 +206,13 @@ test('every test blueprint survives the decode/serialize round trip unchanged', 
  * Measured against the committed data.json with only that change applied;
  * every count and both position checksums held, because only the `version`
  * number in each blueprint changed.
+ *
+ * And from 12290815 to -1164788001 with the switch to the Factorio 2.1.25
+ * data, entirely because of the 2.1 recipe renames in nameMigrations.ts: 16
+ * corpus foundries now save iron-ore-melting / copper-ore-melting instead of
+ * molten-iron / molten-copper, as the game itself migrates them. Measured: the
+ * 2.1 data.json without the renames leaves the hash at 12290815; every count
+ * and both position checksums held.
  */
 //
 // The values now live in tests/__fixtures__/round-trip.json (moved verbatim,

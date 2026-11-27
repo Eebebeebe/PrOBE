@@ -19,7 +19,8 @@ describe('loadData in Node', () => {
 
     it('fills FD from data.json', () => {
         loadTestData()
-        expect(Object.keys(FD.entities)).toHaveLength(155)
+        // 156 since 2.1 added landing-pad-unloading-bay
+        expect(Object.keys(FD.entities)).toHaveLength(156)
         expect(FD.entities['assembling-machine-3']?.type).toBe('assembling-machine')
         expect(FD.recipes['logistic-science-pack']).toBeDefined()
     })

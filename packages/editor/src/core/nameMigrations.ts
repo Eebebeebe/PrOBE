@@ -23,6 +23,14 @@ interface Migration {
     readonly names?: Readonly<Record<string, string>>
     /** A `recipe` field equal to one of these is removed. Beats `values`. */
     readonly dropRecipes?: readonly string[]
+    /**
+     * A recipe reference equal to a key becomes its value: an entity's `recipe`
+     * field, or the `name` of an object whose `type` is "recipe" (a signal).
+     * Item and fluid names are never touched, which matters when a recipe was
+     * renamed but a fluid of the same name lives on (molten-iron in 2.1).
+     * Beats `values`.
+     */
+    readonly recipes?: Readonly<Record<string, string>>
 }
 
 const migrations: readonly Migration[] = [
@@ -86,6 +94,18 @@ const migrations: readonly Migration[] = [
         names: { 'rocket-control-unit': 'raw-fish' },
         dropRecipes: ['rocket-control-unit'],
     },
+    {
+        /*
+            Factorio 2.1 (space-age/migrations/ore-melting.json, tree-seed.json).
+            Recipes only: the fluids molten-iron and molten-copper still exist.
+        */
+        below: getFactorioVersion(2, 1, 0),
+        recipes: {
+            'molten-iron': 'iron-ore-melting',
+            'molten-copper': 'copper-ore-melting',
+            'wood-processing': 'tree-seed',
+        },
+    },
 ]
 
 /** The rows that apply to one version, flattened. */
@@ -93,6 +113,7 @@ interface Applicable {
     readonly values: Map<string, string>
     readonly names: Map<string, string>
     readonly dropRecipes: Set<string>
+    readonly recipes: Map<string, string>
 }
 
 const applicableCache = new Map<number, Applicable>()
@@ -104,14 +125,16 @@ function applicableTo(version: number): Applicable {
     const values = new Map<string, string>()
     const names = new Map<string, string>()
     const dropRecipes = new Set<string>()
+    const recipes = new Map<string, string>()
     for (const migration of migrations) {
         if (version >= migration.below) continue
         for (const [from, to] of Object.entries(migration.values ?? {})) values.set(from, to)
         for (const [from, to] of Object.entries(migration.names ?? {})) names.set(from, to)
         for (const recipe of migration.dropRecipes ?? []) dropRecipes.add(recipe)
+        for (const [from, to] of Object.entries(migration.recipes ?? {})) recipes.set(from, to)
     }
 
-    const applicable: Applicable = { values, names, dropRecipes }
+    const applicable: Applicable = { values, names, dropRecipes, recipes }
     applicableCache.set(version, applicable)
     return applicable
 }
@@ -148,7 +171,7 @@ function migrate(node: unknown, version: number): void {
         earlier, and only that entry should be migrated.
     */
     const scoped = typeof obj.version === 'number' ? obj.version : version
-    const { values, names, dropRecipes } = applicableTo(scoped)
+    const { values, names, dropRecipes, recipes } = applicableTo(scoped)
 
     /*
         The walk carries on even when nothing applies at this level. A 2.0 book
@@ -170,6 +193,13 @@ function migrate(node: unknown, version: number): void {
         if (key === 'recipe' && dropRecipes.has(value)) {
             delete obj.recipe
             continue
+        }
+        if (key === 'recipe' || (key === 'name' && obj.type === 'recipe')) {
+            const renamedRecipe = recipes.get(value)
+            if (renamedRecipe !== undefined) {
+                obj[key] = renamedRecipe
+                continue
+            }
         }
         if (key === 'name') {
             const renamedName = names.get(value)

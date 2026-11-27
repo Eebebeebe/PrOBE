@@ -249,3 +249,97 @@ describe('migrateNames field-specific rows', () => {
         expect(migrated(json).blueprint.entities[0].name).toBe('fast-inserter')
     })
 })
+
+/*
+    Factorio 2.1 renamed three recipes (space-age/migrations/ore-melting.json
+    and tree-seed.json). The game's migrations are keyed by prototype type, so
+    only recipe references move: the fluids molten-iron and molten-copper still
+    exist and must keep their names.
+*/
+describe('2.1 recipe renames', () => {
+    const V_2_0_76 = version(2, 0, 76)
+    const V_2_1 = version(2, 1, 0)
+    const foundry = (recipe: string) => ({
+        entity_number: 1,
+        name: 'foundry',
+        position: { x: 2.5, y: 2.5 },
+        recipe,
+    })
+    const bpWith = (v: number, extra: Record<string, unknown>): string =>
+        JSON.stringify({ blueprint: { item: 'blueprint', version: v, ...extra } })
+
+    it('moves recipe names on machines below 2.1', () => {
+        for (const [from, to] of [
+            ['molten-iron', 'iron-ore-melting'],
+            ['molten-copper', 'copper-ore-melting'],
+            ['wood-processing', 'tree-seed'],
+        ]) {
+            expect(
+                migrated(bpWith(V_2_0_76, { entities: [foundry(from)] })).blueprint.entities[0]
+                    .recipe
+            ).toBe(to)
+        }
+    })
+
+    it('leaves a 2.1 blueprint alone', () => {
+        expect(
+            migrated(bpWith(V_2_1, { entities: [foundry('molten-iron')] })).blueprint.entities[0]
+                .recipe
+        ).toBe('molten-iron')
+    })
+
+    it('moves recipe signals but never the fluids of the same name', () => {
+        const out = migrated(
+            bpWith(V_2_0, {
+                icons: [{ index: 1, signal: { type: 'fluid', name: 'molten-iron' } }],
+                entities: [
+                    {
+                        entity_number: 1,
+                        name: 'infinity-pipe',
+                        position: { x: 0.5, y: 0.5 },
+                        infinity_settings: {
+                            name: 'molten-iron',
+                            temperature: 1500,
+                            mode: 'exactly',
+                        },
+                    },
+                    {
+                        entity_number: 2,
+                        name: 'constant-combinator',
+                        position: { x: 2.5, y: 0.5 },
+                        control_behavior: {
+                            sections: {
+                                sections: [
+                                    {
+                                        index: 1,
+                                        filters: [
+                                            {
+                                                index: 1,
+                                                type: 'recipe',
+                                                name: 'molten-copper',
+                                                quality: 'normal',
+                                                comparator: '=',
+                                            },
+                                            {
+                                                index: 2,
+                                                type: 'fluid',
+                                                name: 'molten-copper',
+                                                quality: 'normal',
+                                                comparator: '=',
+                                            },
+                                        ],
+                                    },
+                                ],
+                            },
+                        },
+                    },
+                ],
+            })
+        ).blueprint
+        expect(out.icons[0].signal.name).toBe('molten-iron')
+        expect(out.entities[0].infinity_settings.name).toBe('molten-iron')
+        const filters = out.entities[1].control_behavior.sections.sections[0].filters
+        expect(filters[0].name).toBe('copper-ore-melting')
+        expect(filters[1].name).toBe('molten-copper')
+    })
+})
