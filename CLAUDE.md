@@ -27,8 +27,9 @@ A university project (Studienarbeit). On top of the editor, PrOBE must run
 - `packages/website/` - the Vite host page, and the `window.__fbe_test` hook the Playwright
   specs drive (the `fbe` name is historical and deliberately left alone).
 - `packages/exporter/` - Rust tool that extracts `data.json` and sprites from a Factorio
-  install. Its committed output in `data/output/` is the data source; the bundled `basisu`
-  binaries are macOS/Windows only, so it cannot be re-run on Linux.
+  install. Its committed output in `data/output/` is the data source. On Linux it uses a
+  `basisu` built by `build-basisu.sh` (`target/basisu`); `EXPORT_JOBS=<n>` limits parallel
+  encodes, which need a lot of memory. Never run it while Factorio is open.
 - `tests/`, `test-blueprints/` - Playwright specs and a corpus of real blueprints.
 - `tools/oracle/` - scripts that measure real Factorio behaviour headless (needs the game).
 - `docs/legacy/CLAUDE-legacy.md` - the previous maintainers' very detailed notes. Read it
