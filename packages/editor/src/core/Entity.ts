@@ -15,7 +15,7 @@ import {
     ScheduleData,
 } from '../types'
 import util from '../common/util'
-import { IllegalFlipError } from './errors'
+import { IllegalFlipError, IncompatibleUpgradeError } from './errors'
 import { coreSettings } from './config'
 import FD, {
     ColorWithAlpha,
@@ -155,6 +155,8 @@ function copySetting<T>(value: T | undefined): T | undefined {
 
 export interface EntityEvents {
     destroy: []
+    /** The entity became another one in place (setName): redraw it. */
+    name: []
     position: [newValue: IPoint, oldValue: IPoint]
     direction: []
     directionType: []
@@ -228,6 +230,93 @@ export class Entity extends EventEmitter<EntityEvents> {
     /** Entity Name */
     public get name(): string {
         return this.m_rawEntity.name
+    }
+
+    /**
+     * Turns this entity into another one in place - an upgrade or downgrade,
+     * as the game's fast-replace does. Everything else set on it stays:
+     * direction, underground type, quality, recipe, modules, circuit settings,
+     * wires. Undoes as one step.
+     *
+     * Throws IncompatibleUpgradeError where the game would refuse the swap
+     * (another fast-replace group, another size) or where something set on the
+     * entity would be lost: a recipe the new machine cannot craft, modules it
+     * has no slot or no use for. An underground belt is swapped together with
+     * its partner, as in the game, and only if the new tier still reaches it.
+     */
+    public setName(name: string): void {
+        if (name === this.name) return
+        const from = this.entityData
+        const to = FD.entities[name] as EntityWithOwnerPrototype | undefined
+        const fail = (reason: string): never => {
+            throw new IncompatibleUpgradeError(this.name, name, reason)
+        }
+        if (to === undefined) return fail('there is no such entity')
+
+        const group = from.fast_replaceable_group
+        if (group === undefined || group !== to.fast_replaceable_group) {
+            fail(
+                `they are not in the same fast-replace group (${group ?? 'none'} and ${to.fast_replaceable_group ?? 'none'})`
+            )
+        }
+        const size = this.size
+        const toSize = getEntitySize(to, this.direction)
+        if (size.x !== toSize.x || size.y !== toSize.y) {
+            fail(`it is ${toSize.x}x${toSize.y}, this one is ${size.x}x${size.y}`)
+        }
+
+        const recipe = this.recipe
+        if (recipe !== undefined && FD.recipes[recipe] !== undefined) {
+            const crafts =
+                isCraftingMachine(to) &&
+                recipeCategories(FD.recipes[recipe]).some(c => to.crafting_categories.includes(c))
+            if (!crafts) fail(`it cannot craft ${recipe}`)
+        }
+
+        const slots = hasModuleFunctionality(to) ? (to.module_slots ?? 0) : 0
+        const usable = new Set(
+            FD.getModulesFor(name)
+                .filter(m => recipe === undefined || recipeSupportsModule(recipe, m))
+                .map(m => m.name)
+        )
+        this.modules.forEach((module, slot) => {
+            if (module === undefined) return
+            if (slot >= slots)
+                fail(`it has ${slots} module slots and slot ${slot + 1} holds ${module}`)
+            if (!usable.has(module)) fail(`it does not take ${module}`)
+        })
+
+        let partner: Entity | undefined
+        if (isUndergroundBelt(from) && isUndergroundBelt(to)) {
+            const searchDirection =
+                this.directionType === 'input' ? this.direction : (this.direction + 8) % 16
+            const partnerNumber = this.m_BP.entityPositionGrid.getOpposingEntity(
+                this.name,
+                this.direction,
+                this.position,
+                searchDirection,
+                from.max_distance
+            )
+            partner =
+                partnerNumber === undefined ? undefined : this.m_BP.entities.get(partnerNumber)
+            if (partner) {
+                const gap =
+                    Math.abs(partner.position.x - this.position.x) +
+                    Math.abs(partner.position.y - this.position.y)
+                if (gap > to.max_distance) {
+                    fail(`its partner is ${gap} tiles away and ${name} reaches ${to.max_distance}`)
+                }
+            }
+        }
+
+        this.m_BP.history.startTransaction(`Change ${this.name} to ${name}`)
+        for (const e of partner ? [this, partner] : [this]) {
+            this.m_BP.history
+                .updateValue(e.m_rawEntity, 'name', name, 'Change entity')
+                .onDone(() => e.emit('name'))
+                .commit()
+        }
+        this.m_BP.history.commitTransaction()
     }
 
     /** Entity Type */

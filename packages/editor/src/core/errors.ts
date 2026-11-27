@@ -27,3 +27,19 @@ export class TextTooLongError extends Error {
         this.name = 'TextTooLongError'
     }
 }
+
+/**
+ * Thrown when an entity cannot be swapped for another in place - the game
+ * would not allow it, or something set on it would be lost. The message says
+ * which, in the words a script author can act on.
+ */
+export class IncompatibleUpgradeError extends Error {
+    public constructor(
+        public readonly from: string,
+        public readonly to: string,
+        public readonly reason: string
+    ) {
+        super(`Cannot turn ${from} into ${to}: ${reason}`)
+        this.name = 'IncompatibleUpgradeError'
+    }
+}

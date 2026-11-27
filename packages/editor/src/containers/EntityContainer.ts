@@ -100,6 +100,16 @@ export class EntityContainer {
             this.visualizationArea.moveTo(this.position)
         }
 
+        // setName swapped the entity for another in place: new sprite, maybe
+        // a new underground reach, new info and new wire connection points.
+        const onNameChange = (): void => {
+            this.redraw()
+            this.redrawSurroundingEntities()
+            this.updateUndergroundLine()
+            this.redrawEntityInfo()
+            G.BPC.wiresContainer.update(this.m_Entity.entityNumber)
+        }
+
         const onModulesChange = (): void => {
             this.redrawEntityInfo()
             if (this.m_Entity.type === 'beacon') {
@@ -134,6 +144,7 @@ export class EntityContainer {
         this.m_Entity.on('directionType', onDirectionTypeChange)
         this.m_Entity.on('position', onPositionChange)
         this.m_Entity.on('modules', onModulesChange)
+        this.m_Entity.on('name', onNameChange)
 
         this.m_Entity.on('filters', this.redrawEntityInfo)
         this.m_Entity.on('splitterInputPriority', this.redrawEntityInfo)
@@ -150,6 +161,7 @@ export class EntityContainer {
             this.m_Entity.off('directionType', onDirectionTypeChange)
             this.m_Entity.off('position', onPositionChange)
             this.m_Entity.off('modules', onModulesChange)
+            this.m_Entity.off('name', onNameChange)
 
             this.m_Entity.off('filters', this.redrawEntityInfo)
             this.m_Entity.off('splitterInputPriority', this.redrawEntityInfo)
